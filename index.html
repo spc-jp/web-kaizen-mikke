@@ -1,0 +1,442 @@
+import React, { useState } from 'react';
+import { 
+  TrendingUp, 
+  BookOpen, 
+  Users, 
+  Clock, 
+  Smartphone,
+  ArrowLeft,
+  Search,
+  Bot,
+  Copy,
+  CheckCircle2,
+  ChevronRight,
+  Settings,
+  HelpCircle,
+  X
+} from 'lucide-react';
+
+// お悩みデータと、入力してもらう指標の設定
+const problemData = [
+  {
+    id: 1,
+    title: 'とにかく問い合わせ（や売上）を増やしたい',
+    icon: <TrendingUp className="w-8 h-8 text-rose-500" />,
+    color: 'bg-rose-50 hover:bg-rose-100 border-rose-200',
+    steps: [
+      'GA4の左メニュー「レポート」＞「エンゲージメント」＞「コンバージョン」を開きます',
+      '以下の2つの数字を拾ってきましょう！'
+    ],
+    inputs: [
+      { id: 'cv', label: '今月の目標達成数（コンバージョン）', placeholder: '例: 15', type: 'number', unit: '件' },
+      { id: 'topSource', label: '一番多かった流入元（セッションの参照元）', placeholder: '例: Google検索、Instagram など', type: 'text', unit: '' }
+    ]
+  },
+  {
+    id: 2,
+    title: '頑張って書いた記事が、ちゃんと読まれているか知りたい',
+    icon: <BookOpen className="w-8 h-8 text-emerald-500" />,
+    color: 'bg-emerald-50 hover:bg-emerald-100 border-emerald-200',
+    steps: [
+      'GA4の左メニュー「レポート」＞「エンゲージメント」＞「ページとスクリーン」を開きます',
+      '調べたい記事を探して、以下の数字を拾ってきましょう！'
+    ],
+    inputs: [
+      { id: 'time', label: '平均エンゲージメント時間（滞在時間）', placeholder: '例: 1分30秒', type: 'text', unit: '' },
+      { id: 'views', label: 'その記事の表示回数', placeholder: '例: 500', type: 'number', unit: '回' }
+    ]
+  },
+  {
+    id: 3,
+    title: 'お客さんはどこから（検索？SNS？）来ているのか知りたい',
+    icon: <Users className="w-8 h-8 text-violet-500" />,
+    color: 'bg-violet-50 hover:bg-violet-100 border-violet-200',
+    steps: [
+      'GA4の左メニュー「レポート」＞「集客」＞「トラフィック獲得」を開きます',
+      '表の下のほうを見て、以下の数字を拾ってきましょう！'
+    ],
+    inputs: [
+      { id: 'searchRatio', label: '検索(Organic Search)から来た人の割合や数', placeholder: '例: 60%', type: 'text', unit: '' },
+      { id: 'snsRatio', label: 'SNS(Social)から来た人の割合や数', placeholder: '例: 10%', type: 'text', unit: '' }
+    ]
+  },
+  {
+    id: 4,
+    title: 'サイトに来て、すぐに帰ってしまっていないか心配',
+    icon: <Clock className="w-8 h-8 text-amber-500" />,
+    color: 'bg-amber-50 hover:bg-amber-100 border-amber-200',
+    steps: [
+      'GA4の左メニュー「レポート」＞「エンゲージメント」＞「概要」を開きます',
+      '画面上部のパーセンテージを拾ってきましょう！'
+    ],
+    inputs: [
+      { id: 'engagementRate', label: 'エンゲージメント率', placeholder: '例: 45', type: 'number', unit: '%' }
+    ]
+  },
+  {
+    id: 5,
+    title: 'スマホのお客さんにとって、使いやすいサイトになっているか',
+    icon: <Smartphone className="w-8 h-8 text-cyan-500" />,
+    color: 'bg-cyan-50 hover:bg-cyan-100 border-cyan-200',
+    steps: [
+      'GA4の左メニュー「レポート」＞「テクノロジー」＞「テクノロジーの詳細」を開きます',
+      '表の左上を「デバイスカテゴリ」にして、数字を拾ってきましょう！'
+    ],
+    inputs: [
+      { id: 'mobileRatio', label: 'mobile(スマホ)の利用割合', placeholder: '例: 80', type: 'number', unit: '%' },
+      { id: 'desktopRatio', label: 'desktop(パソコン)の利用割合', placeholder: '例: 20', type: 'number', unit: '%' }
+    ]
+  }
+];
+
+export default function App() {
+  const [selectedProblem, setSelectedProblem] = useState(null);
+  const [inputValues, setInputValues] = useState({});
+  const [generatedPrompt, setGeneratedPrompt] = useState('');
+  const [copied, setCopied] = useState(false);
+  
+  // モーダルの状態管理
+  const [isHowToOpen, setIsHowToOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  
+  // ダミー設定用ステート
+  const [ga4Url, setGa4Url] = useState('https://analytics.google.com/');
+
+  // お悩み選択時の処理
+  const handleSelect = (problem) => {
+    setSelectedProblem(problem);
+    setInputValues({});
+    setGeneratedPrompt('');
+    setCopied(false);
+  };
+
+  // 入力値の更新
+  const handleInputChange = (id, value) => {
+    setInputValues(prev => ({ ...prev, [id]: value }));
+  };
+
+  // プロンプトの生成
+  const generatePrompt = () => {
+    let dataText = '';
+    selectedProblem.inputs.forEach(input => {
+      const val = inputValues[input.id] || '不明';
+      dataText += `・${input.label}: ${val}${val !== '不明' ? input.unit : ''}\n`;
+    });
+
+    const prompt = `あなたは優秀なWebコンサルタントです。
+私が運営しているWebサイトについて、アクセス解析（GA4）のデータを確認しました。
+
+【現在の課題・目的】
+${selectedProblem.title}
+
+【取得したデータ】
+${dataText}
+上記のデータから推測されるサイトの「現状の評価」と、明日から私が実行できる「具体的なサイト改善のアイデア」を3つ提案してください。
+ITの専門用語はなるべく使わず、分かりやすい言葉でアドバイスをお願いします。`;
+
+    setGeneratedPrompt(prompt);
+    setCopied(false);
+  };
+
+  // クリップボードにコピー
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(generatedPrompt);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 3000);
+  };
+
+  return (
+    <div className="min-h-screen bg-[#faf9f6] font-sans text-slate-800">
+      {/* ヘッダー */}
+      <header className="bg-white border-b border-orange-100 sticky top-0 z-10 shadow-sm">
+        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="bg-orange-500 p-2 rounded-xl shadow-inner text-white">
+              <Search className="w-6 h-6 md:w-7 md:h-7" />
+            </div>
+            <div>
+              <h1 className="text-xl md:text-2xl font-black text-slate-800 tracking-tight">
+                Web改善みっけ
+              </h1>
+              <p className="hidden md:block text-xs text-orange-600 font-bold tracking-wide">
+                GA4の数字を、AIコンサルタントに丸投げ！
+              </p>
+            </div>
+          </div>
+          
+          {/* 追加：使い方＆設定ボタン */}
+          <div className="flex items-center gap-2 md:gap-4">
+            <button 
+              onClick={() => setIsHowToOpen(true)}
+              className="flex items-center gap-1 md:gap-2 px-3 py-2 text-sm font-bold text-slate-600 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+            >
+              <HelpCircle className="w-5 h-5" />
+              <span className="hidden md:inline">使い方</span>
+            </button>
+            <button 
+              onClick={() => setIsSettingsOpen(true)}
+              className="flex items-center gap-1 md:gap-2 px-3 py-2 text-sm font-bold text-slate-600 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+            >
+              <Settings className="w-5 h-5" />
+              <span className="hidden md:inline">設定</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* 使い方モーダル */}
+      {isHowToOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-lg rounded-3xl shadow-xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center p-6 border-b border-slate-100 bg-slate-50">
+              <h2 className="text-xl font-bold flex items-center text-slate-800">
+                <HelpCircle className="w-6 h-6 mr-2 text-orange-500" />
+                使い方ガイド
+              </h2>
+              <button onClick={() => setIsHowToOpen(false)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-full transition-colors">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6">
+              <div className="mb-6">
+                <h3 className="text-sm font-black text-orange-600 mb-2 bg-orange-100 inline-block px-3 py-1 rounded-full">目的</h3>
+                <p className="text-slate-700 font-medium leading-relaxed">
+                  GA4の難しい数字を「AIの力」を使って、誰でも簡単に「具体的なサイト改善のアイデア」に変えることです。データ分析で迷う時間をなくします。
+                </p>
+              </div>
+              
+              <div>
+                <h3 className="text-sm font-black text-blue-600 mb-3 bg-blue-100 inline-block px-3 py-1 rounded-full">使い方・手順</h3>
+                <ol className="space-y-4 text-slate-700 font-medium">
+                  <li className="flex gap-3">
+                    <span className="flex-shrink-0 w-6 h-6 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center font-bold text-sm">1</span>
+                    <p><strong className="text-slate-800">お悩みを選ぶ：</strong> トップ画面から、今日解決したい目的を1つ選びます。</p>
+                  </li>
+                  <li className="flex gap-3">
+                    <span className="flex-shrink-0 w-6 h-6 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center font-bold text-sm">2</span>
+                    <p><strong className="text-slate-800">GA4で数字を拾う：</strong> 画面の案内に従って、GA4を開き必要な数字を探します。</p>
+                  </li>
+                  <li className="flex gap-3">
+                    <span className="flex-shrink-0 w-6 h-6 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center font-bold text-sm">3</span>
+                    <p><strong className="text-slate-800">数字を入力する：</strong> 見つけた数字をこのアプリに入力します。</p>
+                  </li>
+                  <li className="flex gap-3">
+                    <span className="flex-shrink-0 w-6 h-6 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center font-bold text-sm">4</span>
+                    <p><strong className="text-slate-800">AIに相談する：</strong> ボタンを押すとAI用の質問文が完成します。コピーしてChatGPTなどに貼り付けましょう！</p>
+                  </li>
+                </ol>
+              </div>
+            </div>
+            <div className="p-4 border-t border-slate-100 bg-slate-50 text-center">
+              <button onClick={() => setIsHowToOpen(false)} className="px-6 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl transition-colors">
+                閉じる
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 設定モーダル */}
+      {isSettingsOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-md rounded-3xl shadow-xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center p-6 border-b border-slate-100 bg-slate-50">
+              <h2 className="text-xl font-bold flex items-center text-slate-800">
+                <Settings className="w-6 h-6 mr-2 text-slate-500" />
+                GA4アカウント設定
+              </h2>
+              <button onClick={() => setIsSettingsOpen(false)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-full transition-colors">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6">
+              <p className="text-sm text-slate-500 mb-4 font-medium">
+                お使いのGA4プロパティのURLを登録しておくと、アプリからすぐにGA4を開けるようになります。（現在はお使いのブラウザにのみ保存されます）
+              </p>
+              <div className="mb-4">
+                <label className="block text-sm font-bold text-slate-700 mb-2">GA4のログインURL</label>
+                <input 
+                  type="url" 
+                  value={ga4Url}
+                  onChange={(e) => setGa4Url(e.target.value)}
+                  className="w-full p-3 rounded-xl border-2 border-slate-200 focus:border-orange-500 focus:ring-0 outline-none transition-colors text-sm"
+                  placeholder="https://analytics.google.com/..."
+                />
+              </div>
+            </div>
+            <div className="p-4 border-t border-slate-100 bg-slate-50 flex gap-3 justify-end">
+              <button onClick={() => setIsSettingsOpen(false)} className="px-5 py-2 text-slate-600 font-bold hover:bg-slate-200 rounded-xl transition-colors">
+                キャンセル
+              </button>
+              <button 
+                onClick={() => {
+                  alert('設定を保存しました（デモ機能）');
+                  setIsSettingsOpen(false);
+                }} 
+                className="px-5 py-2 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl transition-colors shadow-sm"
+              >
+                保存する
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <main className="max-w-3xl mx-auto px-4 py-8">
+        {/* GA4へ飛ぶショートカット（設定連動風） */}
+        {!selectedProblem && (
+          <div className="mb-8 flex justify-end">
+            <a 
+              href={ga4Url} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-sm font-bold text-orange-600 hover:text-orange-700 flex items-center bg-orange-50 px-4 py-2 rounded-full border border-orange-200 transition-colors shadow-sm hover:shadow"
+            >
+              自分のGA4を開く <ChevronRight className="w-4 h-4 ml-1" />
+            </a>
+          </div>
+        )}
+
+        {/* 一覧画面 */}
+        {!selectedProblem && (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <h2 className="text-xl font-bold text-slate-700 mb-6 text-center sm:text-left">
+              今日解決したいお悩みはどれですか？
+            </h2>
+            <div className="grid gap-4">
+              {problemData.map((problem) => (
+                <button
+                  key={problem.id}
+                  onClick={() => handleSelect(problem)}
+                  className={`w-full flex items-center p-5 rounded-2xl border-2 transition-all duration-200 text-left shadow-sm hover:shadow-md ${problem.color}`}
+                >
+                  <div className="flex-shrink-0 mr-5 bg-white p-3 rounded-full shadow-sm">
+                    {problem.icon}
+                  </div>
+                  <div className="flex-grow">
+                    <h3 className="text-lg font-bold text-slate-800">
+                      {problem.title}
+                    </h3>
+                  </div>
+                  <ChevronRight className="w-6 h-6 text-slate-400 flex-shrink-0" />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 詳細（入力＆プロンプト生成）画面 */}
+        {selectedProblem && (
+          <div className="animate-in fade-in slide-in-from-right-8 duration-300">
+            <div className="flex justify-between items-center mb-6">
+              <button
+                onClick={() => setSelectedProblem(null)}
+                className="flex items-center text-slate-500 hover:text-slate-800 font-medium bg-white px-4 py-2 rounded-full shadow-sm border border-slate-200"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                お悩み一覧に戻る
+              </button>
+              
+              <a 
+                href={ga4Url} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-xs sm:text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 px-3 py-2 rounded-lg transition-colors border border-slate-200 flex items-center gap-1"
+              >
+                GA4を開く <ChevronRight className="w-3 h-3" />
+              </a>
+            </div>
+
+            {/* ステップ1: GA4から数字を拾う */}
+            <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200 mb-6 relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-2 h-full bg-slate-400"></div>
+              <h3 className="text-lg font-bold text-slate-800 mb-4">
+                Step 1. GA4で数字を拾ってきましょう
+              </h3>
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-slate-600 mb-6">
+                <p className="font-medium text-sm mb-2 text-slate-500">🗺️ GA4での探し方</p>
+                <ol className="list-decimal list-inside space-y-1">
+                  {selectedProblem.steps.map((step, idx) => (
+                    <li key={idx}>{step}</li>
+                  ))}
+                </ol>
+              </div>
+
+              {/* ステップ2: 数字を入力する */}
+              <h3 className="text-lg font-bold text-slate-800 mb-4 border-t border-slate-100 pt-6">
+                Step 2. 見つけた数字を入力してください
+              </h3>
+              <div className="grid gap-4">
+                {selectedProblem.inputs.map(input => (
+                  <div key={input.id} className="flex flex-col sm:flex-row sm:items-center gap-2">
+                    <label className="text-sm font-bold text-slate-600 sm:w-1/2">
+                      {input.label}
+                    </label>
+                    <div className="flex items-center sm:w-1/2">
+                      <input
+                        type={input.type}
+                        placeholder={input.placeholder}
+                        value={inputValues[input.id] || ''}
+                        onChange={(e) => handleInputChange(input.id, e.target.value)}
+                        className="flex-grow p-3 rounded-lg border-2 border-slate-200 focus:border-orange-500 focus:ring-0 outline-none transition-colors"
+                      />
+                      {input.unit && (
+                        <span className="ml-2 font-bold text-slate-500 w-8">{input.unit}</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                onClick={generatePrompt}
+                className="w-full mt-6 bg-slate-800 hover:bg-slate-900 text-white font-bold py-4 rounded-xl shadow-md transition-transform active:scale-95 flex items-center justify-center gap-2"
+              >
+                <Bot className="w-5 h-5" />
+                AIに相談するための文章を作る！
+              </button>
+            </div>
+
+            {/* ステップ3: AIプロンプトの出力 */}
+            {generatedPrompt && (
+              <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-3xl p-6 shadow-sm border border-orange-200 animate-in zoom-in-95 duration-300">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-bold text-orange-900 flex items-center">
+                    <Bot className="w-6 h-6 mr-2 text-orange-600" />
+                    Step 3. 相談文が完成しました！
+                  </h3>
+                </div>
+                
+                <p className="text-sm text-orange-800 mb-3 font-medium">
+                  下の文章をコピーして、ChatGPTやClaudeなどのAIに貼り付けてみてください。
+                </p>
+
+                <div className="relative">
+                  <textarea
+                    readOnly
+                    value={generatedPrompt}
+                    className="w-full h-64 p-4 rounded-xl border border-orange-200 bg-white text-slate-700 text-sm leading-relaxed resize-none focus:outline-none"
+                  />
+                  <button
+                    onClick={copyToClipboard}
+                    className={`absolute bottom-4 right-4 flex items-center gap-2 px-4 py-2 rounded-lg font-bold shadow-sm transition-all ${
+                      copied 
+                        ? 'bg-green-500 text-white' 
+                        : 'bg-orange-500 hover:bg-orange-600 text-white'
+                    }`}
+                  >
+                    {copied ? (
+                      <><CheckCircle2 className="w-4 h-4" /> コピーしました！</>
+                    ) : (
+                      <><Copy className="w-4 h-4" /> コピーする</>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
