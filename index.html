@@ -4,6 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>自動分析みっけ V3.9 (スマートステータストグル版)</title>
+  
+  <!-- 🌟 favicon（ファビコン）の表示設定を追加しました -->
+  <link rel="icon" href="https://spc-jp.github.io/web-kaizen-mikke/favicon.png" type="image/png">
+  
   <!-- 安定した Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- 確実に読み込める UMD版 Lucide Icons -->
@@ -266,7 +270,7 @@
           </p>
         </div>
 
-        <!-- 💡 表示/非表示 切り替えトグル (新設！) -->
+        <!-- 💡 表示/非表示 切り替えトグル -->
         <div class="pt-4 border-t border-slate-200 flex items-center justify-between">
           <div class="flex flex-col gap-0.5">
             <span class="text-xs font-black text-slate-600 flex items-center gap-1">
@@ -565,7 +569,7 @@
 
     // 読み込みが完了してから初期化
     window.addEventListener('DOMContentLoaded', () => {
-      // 1. ローカルストレージから前回設定をロード
+      // 1. ローカルストレージから前回設定をロード (おもてなし機能)
       loadSettingsFromStorage();
       
       // 最初からデモキー風情報をセットして優しくガイド
@@ -596,21 +600,6 @@
       initIcons();
     }
 
-    // 💡 新設：ステータスサマリー自体の表示ON/OFF切り替えロジック
-    function toggleStatusViewDisplay(isChecked) {
-      const card = document.getElementById('main-status-card');
-      const tips = document.getElementById('sub-tips-card');
-      
-      if (isChecked) {
-        card.classList.remove('hidden');
-        if (tips) tips.classList.remove('hidden');
-      } else {
-        card.classList.add('hidden');
-        if (tips) tips.classList.add('hidden');
-      }
-      localStorage.setItem('mikke_show_status', isChecked ? 'true' : 'false');
-    }
-
     // ローカルストレージに設定を保存する
     function saveSettingsToStorage() {
       const clientName = document.getElementById('client-name-input').value.trim();
@@ -629,16 +618,16 @@
       const clientName = localStorage.getItem('mikke_client_name') || "みっけカタログ LP";
       const propId = localStorage.getItem('mikke_prop_id') || "542302994";
       const workersUrl = localStorage.getItem('mikke_workers_url') || "";
-      const showStatus = localStorage.getItem('mikke_show_status') !== 'false'; // デフォルトは表示(true)
+      const statusViewChecked = localStorage.getItem('mikke_status_view') !== "false"; // デフォルトは表示
 
       document.getElementById('client-name-input').value = clientName;
       document.getElementById('prop-id-input').value = propId;
       document.getElementById('workers-url-input').value = workersUrl;
       
-      const toggleCheckbox = document.getElementById('toggle-status-view');
-      if (toggleCheckbox) {
-        toggleCheckbox.checked = showStatus;
-        toggleStatusViewDisplay(showStatus);
+      const toggleSwitch = document.getElementById('toggle-status-view');
+      if (toggleSwitch) {
+        toggleSwitch.checked = statusViewChecked;
+        toggleStatusViewDisplay(statusViewChecked);
       }
     }
 
@@ -663,6 +652,21 @@
       document.querySelectorAll('.client-name-display').forEach(el => {
         el.innerText = clientName;
       });
+    }
+
+    // 💡 新設：サマリーカードの表示・非表示切り替えトグル処理
+    function toggleStatusViewDisplay(isChecked) {
+      const card = document.getElementById('main-status-card');
+      const tips = document.getElementById('sub-tips-card');
+      
+      if (isChecked) {
+        if (card) card.classList.remove('hidden');
+        if (tips) tips.classList.remove('hidden');
+      } else {
+        if (card) card.classList.add('hidden');
+        if (tips) tips.classList.add('hidden');
+      }
+      localStorage.setItem('mikke_show_status', isChecked ? 'true' : 'false');
     }
 
     // 💡 デモデータの再ロード機能 (環境設定最下部リンクから呼び出し)
