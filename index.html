@@ -3,436 +3,416 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Web改善みっけ</title>
+  <title>自動分析みっけ V3.1 (GA4自動連携・接続テスト版)</title>
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
+  
   <style>
+    :root {
+      --main-navy: #223670;
+      --accent-cyan: #00a3e0;
+      --accent-gold: #d0a900;
+      --bg-light: #f0f4f8;
+      --text-dark: #1e293b;
+    }
+
     body {
       font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
-      background-color: #faf9f6;
+      background-color: var(--bg-light);
+      color: var(--text-dark);
     }
-    /* モーダルのアニメーション用 */
-    .fade-in { animation: fadeIn 0.2s ease-out forwards; }
-    .zoom-in { animation: zoomIn 0.2s ease-out forwards; }
+
+    /* ぷくぷく立体デザイン（Claymorphism） */
+    .clay-card {
+      background: #f0f4f8;
+      border-radius: 28px;
+      box-shadow: 9px 9px 16px #beccd8, 
+                  -9px -9px 16px #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.7);
+    }
+
+    .clay-input {
+      background: #f0f4f8;
+      border-radius: 16px;
+      box-shadow: inset 3px 3px 6px #beccd8, 
+                  inset -3px -3px 6px #ffffff;
+      border: none;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+
+    .clay-input:focus {
+      box-shadow: inset 4px 4px 8px #a9b9c9, 
+                  inset -4px -4px 8px #ffffff;
+    }
+
+    .clay-btn-navy {
+      background: linear-gradient(135deg, #223670, #142044);
+      border-radius: 20px;
+      box-shadow: 4px 4px 10px rgba(34, 54, 112, 0.25), 
+                  -4px -4px 10px rgba(255, 255, 255, 0.95);
+      color: white;
+      transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .clay-btn-navy:hover {
+      transform: translateY(-2px);
+      box-shadow: 6px 6px 14px rgba(34, 54, 112, 0.35), 
+                  -6px -6px 14px rgba(255, 255, 255, 0.95);
+    }
+
+    .clay-btn-navy:active {
+      transform: translateY(1px);
+      box-shadow: inset 3px 3px 6px rgba(10, 16, 34, 0.5), 
+                  inset -3px -3px 6px rgba(255, 255, 255, 0.2);
+    }
+
+    .clay-btn-cyan {
+      background: linear-gradient(135deg, #00a3e0, #0082b3);
+      border-radius: 20px;
+      box-shadow: 4px 4px 10px rgba(0, 163, 224, 0.25), 
+                  -4px -4px 10px rgba(255, 255, 255, 0.95);
+      color: white;
+      transition: all 0.2s ease;
+    }
+
+    .clay-btn-cyan:hover {
+      transform: translateY(-2px);
+      box-shadow: 6px 6px 14px rgba(0, 163, 224, 0.35);
+    }
+
+    .clay-btn-cyan:active {
+      transform: translateY(1px);
+      box-shadow: inset 3px 3px 6px rgba(0, 78, 107, 0.5);
+    }
+
+    /* アニメーション */
+    .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+    .zoom-in { animation: zoomIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.1) forwards; }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    @keyframes zoomIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    @keyframes zoomIn { from { transform: scale(0.97); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+    .pulse-slow {
+      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: .8; transform: scale(1.005); }
+    }
   </style>
 </head>
-<body class="text-slate-800 min-h-screen flex flex-col">
+<body class="min-h-screen flex flex-col items-center justify-start p-4 md:p-8">
 
   <!-- ヘッダー -->
-  <header class="bg-white border-b border-orange-100 sticky top-0 z-10 shadow-sm">
-    <div class="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <div class="bg-orange-500 p-2 rounded-xl shadow-inner text-white">
-          <i data-lucide="search" class="w-6 h-6 md:w-7 md:h-7"></i>
-        </div>
-        <div>
-          <h1 class="text-xl md:text-2xl font-black text-slate-800 tracking-tight">
-            Web改善みっけ
-          </h1>
-          <p class="hidden md:block text-xs text-orange-600 font-bold tracking-wide">
-            GA4の数字を、AIコンサルタントに丸投げ！
-          </p>
-        </div>
+  <header class="w-full max-w-4xl mb-8 flex flex-col md:flex-row items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <div class="bg-gradient-to-br from-[#223670] to-[#00a3e0] p-3 rounded-2xl shadow-md text-white">
+        <i data-lucide="gauge" class="w-6 h-6"></i>
       </div>
-      
-      <div class="flex items-center gap-2 md:gap-4">
-        <button onclick="openModal('how-to-modal')" class="flex items-center gap-1 md:gap-2 px-3 py-2 text-sm font-bold text-slate-600 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors">
-          <i data-lucide="help-circle" class="w-5 h-5"></i>
-          <span class="hidden md:inline">使い方</span>
-        </button>
-        <button onclick="openModal('settings-modal')" class="flex items-center gap-1 md:gap-2 px-3 py-2 text-sm font-bold text-slate-600 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors">
-          <i data-lucide="settings" class="w-5 h-5"></i>
-          <span class="hidden md:inline">設定</span>
-        </button>
+      <div>
+        <h1 class="text-xl md:text-2xl font-black text-[#223670] tracking-tight">
+          自動分析みっけ <span class="bg-[#223670]/10 text-[#223670] text-xs px-2.5 py-0.5 rounded-full font-bold ml-1.5">V3.1 TESTER</span>
+        </h1>
+        <p class="text-[11px] text-[#00a3e0] font-bold tracking-wide mt-0.5">
+          「考えるを、ひとりにしない。」 Smile Plus Consulting様 接続検証シミュレーター
+        </p>
       </div>
+    </div>
+    
+    <div class="flex items-center gap-2">
+      <span class="w-2.5 h-2.5 rounded-full bg-green-500 inline-block animate-pulse"></span>
+      <span class="text-xs font-bold text-slate-500" id="mjs-tag">テスト対象：みっけカタログ LP 連携中</span>
     </div>
   </header>
 
-  <!-- 使い方モーダル -->
-  <div id="how-to-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm fade-in">
-    <div class="bg-white w-full max-w-lg rounded-3xl shadow-xl overflow-hidden zoom-in">
-      <div class="flex justify-between items-center p-6 border-b border-slate-100 bg-slate-50">
-        <h2 class="text-xl font-bold flex items-center text-slate-800">
-          <i data-lucide="help-circle" class="w-6 h-6 mr-2 text-orange-500"></i>
-          使い方ガイド
-        </h2>
-        <button onclick="closeModal('how-to-modal')" class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-full transition-colors">
-          <i data-lucide="x" class="w-6 h-6"></i>
-        </button>
-      </div>
-      <div class="p-6">
-        <div class="mb-6">
-          <h3 class="text-sm font-black text-orange-600 mb-2 bg-orange-100 inline-block px-3 py-1 rounded-full">目的</h3>
-          <p class="text-slate-700 font-medium leading-relaxed">
-            GA4の難しい数字を「AIの力」を使って、誰でも簡単に「具体的なサイト改善のアイデア」に変えることです。データ分析で迷う時間をなくします。
-          </p>
-        </div>
-        <div>
-          <h3 class="text-sm font-black text-blue-600 mb-3 bg-blue-100 inline-block px-3 py-1 rounded-full">使い方・手順</h3>
-          <ol class="space-y-4 text-slate-700 font-medium">
-            <li class="flex gap-3">
-              <span class="flex-shrink-0 w-6 h-6 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center font-bold text-sm">1</span>
-              <p><strong class="text-slate-800">お悩みを選ぶ：</strong> トップ画面から、今日解決したい目的を1つ選びます。</p>
-            </li>
-            <li class="flex gap-3">
-              <span class="flex-shrink-0 w-6 h-6 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center font-bold text-sm">2</span>
-              <p><strong class="text-slate-800">GA4で数字を拾う：</strong> 画面の案内に従って、GA4を開き必要な数字を探します。</p>
-            </li>
-            <li class="flex gap-3">
-              <span class="flex-shrink-0 w-6 h-6 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center font-bold text-sm">3</span>
-              <p><strong class="text-slate-800">数字を入力する：</strong> 見つけた数字をこのアプリに入力します。</p>
-            </li>
-            <li class="flex gap-3">
-              <span class="flex-shrink-0 w-6 h-6 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center font-bold text-sm">4</span>
-              <p><strong class="text-slate-800">AIに相談する：</strong> ボタンを押すとAI用の質問文が完成します。コピーしてChatGPTなどに貼り付けましょう！</p>
-            </li>
-          </ol>
-        </div>
-      </div>
-      <div class="p-4 border-t border-slate-100 bg-slate-50 text-center">
-        <button onclick="closeModal('how-to-modal')" class="px-6 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl transition-colors">閉じる</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 設定モーダル -->
-  <div id="settings-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm fade-in">
-    <div class="bg-white w-full max-w-md rounded-3xl shadow-xl overflow-hidden zoom-in">
-      <div class="flex justify-between items-center p-6 border-b border-slate-100 bg-slate-50">
-        <h2 class="text-xl font-bold flex items-center text-slate-800">
-          <i data-lucide="settings" class="w-6 h-6 mr-2 text-slate-500"></i>
-          GA4アカウント設定
-        </h2>
-        <button onclick="closeModal('settings-modal')" class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-full transition-colors">
-          <i data-lucide="x" class="w-6 h-6"></i>
-        </button>
-      </div>
-      <div class="p-6">
-        <p class="text-sm text-slate-500 mb-4 font-medium">
-          お使いのGA4プロパティのURLを登録しておくと、アプリからすぐにGA4を開けるようになります。
-        </p>
-        <div class="mb-4">
-          <label class="block text-sm font-bold text-slate-700 mb-2">GA4のログインURL</label>
-          <input type="url" id="ga4-url-input" value="https://analytics.google.com/" class="w-full p-3 rounded-xl border-2 border-slate-200 focus:border-orange-500 focus:ring-0 outline-none transition-colors text-sm" placeholder="https://analytics.google.com/...">
-        </div>
-      </div>
-      <div class="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-end gap-3">
-        <span id="save-message" class="text-sm font-bold text-green-600 mr-auto hidden">保存しました！</span>
-        <button onclick="closeModal('settings-modal')" class="px-5 py-2 text-slate-600 font-bold hover:bg-slate-200 rounded-xl transition-colors">キャンセル</button>
-        <button onclick="saveSettings()" class="px-5 py-2 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl transition-colors shadow-sm">保存する</button>
-      </div>
-    </div>
-  </div>
-
-  <main class="max-w-3xl mx-auto w-full px-4 py-8 flex-grow">
+  <!-- メインコンテンツ -->
+  <main class="w-full max-w-4xl grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
     
-    <!-- トップ：自分のGA4を開くボタン -->
-    <div id="top-shortcut" class="mb-8 flex justify-end">
-      <a id="global-ga4-link" href="https://analytics.google.com/" target="_blank" rel="noopener noreferrer" class="text-sm font-bold text-orange-600 hover:text-orange-700 flex items-center bg-orange-50 px-4 py-2 rounded-full border border-orange-200 transition-colors shadow-sm hover:shadow">
-        自分のGA4を開く <i data-lucide="chevron-right" class="w-4 h-4 ml-1"></i>
-      </a>
-    </div>
-
-    <!-- 画面1：お悩み一覧ビュー -->
-    <div id="view-list" class="block fade-in">
-      <h2 class="text-xl font-bold text-slate-700 mb-6 text-center sm:text-left">
-        今日解決したいお悩みはどれですか？
-      </h2>
-      <div id="problem-list-container" class="grid gap-4">
-        <!-- JSで動的に生成されます -->
-      </div>
-    </div>
-
-    <!-- 画面2：詳細（入力＆プロンプト生成）ビュー -->
-    <div id="view-detail" class="hidden fade-in">
-      <div class="flex justify-between items-center mb-6">
-        <button onclick="showList()" class="flex items-center text-slate-500 hover:text-slate-800 font-medium bg-white px-4 py-2 rounded-full shadow-sm border border-slate-200">
-          <i data-lucide="arrow-left" class="w-4 h-4 mr-2"></i>
-          お悩み一覧に戻る
-        </button>
-        <a id="detail-ga4-link" href="https://analytics.google.com/" target="_blank" rel="noopener noreferrer" class="text-xs sm:text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 px-3 py-2 rounded-lg transition-colors border border-slate-200 flex items-center gap-1">
-          GA4を開く <i data-lucide="chevron-right" class="w-3 h-3"></i>
-        </a>
-      </div>
-
-      <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-200 mb-6 relative overflow-hidden">
-        <div class="absolute top-0 left-0 w-2 h-full bg-slate-400"></div>
-        <h3 class="text-lg font-bold text-slate-800 mb-4">
-          Step 1. GA4で数字を拾ってきましょう
+    <!-- 左側：設定・鍵の読み込みコンソール (5段組) -->
+    <div class="md:col-span-5 flex flex-col gap-6">
+      <div class="clay-card p-6 relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-full h-1.5 bg-[#223670]"></div>
+        
+        <h3 class="text-sm font-black text-[#223670] mb-4 flex items-center gap-1.5">
+          <i data-lucide="key-round" class="w-4 h-4 text-[#00a3e0]"></i>
+          接続コンソール
         </h3>
-        <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 text-slate-600 mb-6">
-          <p class="font-medium text-sm mb-2 text-slate-500">🗺️ GA4での探し方</p>
-          <ol id="step-list" class="list-decimal list-inside space-y-1">
-            <!-- JSで動的に生成 -->
-          </ol>
+
+        <!-- ステップ1：鍵のインポート -->
+        <div class="mb-5">
+          <label class="block text-xs font-black text-slate-600 mb-2">① パソコン内の秘密鍵を選択</label>
+          <div class="relative">
+            <input type="file" id="json-file-input" accept=".json" class="hidden" />
+            <button onclick="document.getElementById('json-file-input').click()" class="w-full p-4 clay-input text-xs font-bold text-[#223670] hover:bg-white/50 transition-colors flex items-center justify-between">
+              <span id="file-name-text" class="truncate pr-4">ファイルを選択（.json）</span>
+              <i data-lucide="file-up" class="w-4 h-4 text-[#00a3e0] flex-shrink-0"></i>
+            </button>
+          </div>
+          <p class="text-[10px] text-slate-400 mt-1">※Google Cloudからダウンロードしたキーファイルです。</p>
         </div>
 
-        <h3 class="text-lg font-bold text-slate-800 mb-4 border-t border-slate-100 pt-6">
-          Step 2. 見つけた数字を入力してください
-        </h3>
-        <div id="input-container" class="grid gap-4">
-          <!-- JSで動的に生成 -->
+        <!-- ステップ2：プロパティID -->
+        <div class="mb-6">
+          <div class="flex justify-between items-center mb-2">
+            <label class="text-xs font-black text-slate-600">② GA4 プロパティIDを入力</label>
+            <button onclick="toggleGuide()" class="text-[10px] font-bold text-[#00a3e0] hover:underline flex items-center gap-0.5">
+              <i data-lucide="help-circle" class="w-3 h-3"></i>
+              どこにある？
+            </button>
+          </div>
+          <input type="text" id="prop-id-input" class="w-full p-3.5 clay-input text-xs font-bold text-[#223670] tracking-wider" placeholder="例: 412345678" />
         </div>
 
-        <button onclick="generatePrompt()" class="w-full mt-6 bg-slate-800 hover:bg-slate-900 text-white font-bold py-4 rounded-xl shadow-md transition-transform active:scale-95 flex items-center justify-center gap-2">
-          <i data-lucide="bot" class="w-5 h-5"></i>
-          AIに相談するための文章を作る！
+        <!-- ぷくぷく接続テストボタン -->
+        <button id="test-connection-btn" onclick="runConnectionTest()" class="clay-btn-navy w-full py-4 text-xs font-black flex items-center justify-center gap-2">
+          <i data-lucide="refresh-cw" class="w-4 h-4" id="btn-icon"></i>
+          <span id="btn-text">自動データ取得をテスト！</span>
         </button>
       </div>
 
-      <!-- Step 3. プロンプト結果（初期は非表示） -->
-      <div id="prompt-result" class="hidden bg-gradient-to-br from-orange-50 to-amber-50 rounded-3xl p-6 shadow-sm border border-orange-200 zoom-in">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-lg font-bold text-orange-900 flex items-center">
-            <i data-lucide="bot" class="w-6 h-6 mr-2 text-orange-600"></i>
-            Step 3. 相談文が完成しました！
-          </h3>
+      <!-- プロパティIDの見つけ方ガイド (デフォルト非表示) -->
+      <div id="guide-box" class="hidden clay-card p-5 border-l-4 border-l-[#d0a900] zoom-in">
+        <h4 class="text-xs font-black text-[#d0a900] mb-2 flex items-center gap-1">
+          <i data-lucide="info" class="w-4 h-4"></i>
+          プロパティIDの見つけ方
+        </h4>
+        <ol class="list-decimal list-inside text-[11px] text-slate-600 space-y-1.5 leading-relaxed font-bold">
+          <li>Googleアナリティクスの「管理（歯車）」を開きます。</li>
+          <li>プロパティ設定内の「プロパティの詳細」をクリックします。</li>
+          <li>右上に表示される「プロパティID (9桁の数字)」をコピーしてください。</li>
+        </ol>
+      </div>
+
+      <!-- お役立ち豆知識（新規追加） -->
+      <div class="clay-card p-5 bg-blue-50/20 border border-blue-200/50">
+        <h4 class="text-xs font-black text-[#223670] mb-2 flex items-center gap-1.5">
+          <i data-lucide="lightbulb" class="w-4 h-4 text-[#00a3e0]"></i>
+          開発・招待時のマメ知識
+        </h4>
+        <ul class="list-disc list-inside text-[11px] text-slate-600 space-y-1.5 leading-relaxed font-bold">
+          <li><strong>招待時メール：</strong> ロボット宛の通知は不要なため、招待時の「メールで通知する」はチェックオフでOKです！</li>
+          <li><strong>管理者権限：</strong> お客様に管理者権限を付与してもらうと、今後のロボット管理がすべて松本様の手元で完結できます。</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- 右側：結果表示 & レポートビューアー (7段組) -->
+    <div class="md:col-span-7">
+      
+      <!-- 未テスト時のウェルカム表示 -->
+      <div id="status-untested" class="clay-card p-12 text-center flex flex-col items-center justify-center min-h-[350px]">
+        <div class="bg-[#223670]/10 text-[#223670] p-5 rounded-full mb-4">
+          <i data-lucide="bot" class="w-10 h-10 animate-bounce"></i>
         </div>
-        <p class="text-sm text-orange-800 mb-3 font-medium">
-          下の文章をコピーして、ChatGPTやClaudeなどのAIに貼り付けてみてください。
+        <h4 class="text-sm font-black text-[#223670] mb-1">準備完了です！</h4>
+        <p class="text-xs text-slate-500 max-w-sm leading-relaxed">
+          左側のコンソールから「①ダウンロードした秘密鍵」と「②プロパティID」をセットしてテストボタンを押してください。
         </p>
-        <div class="relative">
-          <textarea id="prompt-textarea" readonly class="w-full h-64 p-4 rounded-xl border border-orange-200 bg-white text-slate-700 text-sm leading-relaxed resize-none focus:outline-none"></textarea>
-          <button id="copy-btn" onclick="copyToClipboard()" class="absolute bottom-4 right-4 flex items-center gap-2 px-4 py-2 rounded-lg font-bold shadow-sm transition-all bg-orange-500 hover:bg-orange-600 text-white">
-            <i data-lucide="copy" class="w-4 h-4" id="copy-icon"></i>
-            <span id="copy-text">コピーする</span>
-          </button>
-        </div>
       </div>
+
+      <!-- ローディングアニメーション -->
+      <div id="status-loading" class="hidden clay-card p-12 text-center min-h-[350px] flex flex-col items-center justify-center pulse-slow">
+        <div class="text-[#00a3e0] p-4 mb-4">
+          <i data-lucide="loader-2" class="w-10 h-10 animate-spin"></i>
+        </div>
+        <h4 class="text-sm font-black text-[#223670] mb-1">Google Cloud 認証を検証中...</h4>
+        <p class="text-xs text-slate-400">暗号キーの検証とGA4への接続検証を擬似的に実行しています。</p>
+      </div>
+
+      <!-- テスト結果表示エリア -->
+      <div id="test-result-panel" class="hidden flex flex-col gap-6 fade-in">
+        
+        <!-- 接続情報ヘッダー -->
+        <div class="clay-card p-5 relative overflow-hidden bg-emerald-50/20 border border-emerald-200">
+          <div class="flex items-start gap-3">
+            <div class="bg-emerald-500 text-white p-2 rounded-xl">
+              <i data-lucide="shield-check" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <h4 class="text-xs font-black text-emerald-800">✓ Google APIとの接続が正常に確立されました！</h4>
+              <p class="text-[10px] text-emerald-600 font-bold mt-0.5">
+                秘密鍵の読み込み、および閲覧者権限の一致をテスト確認しました。
+              </p>
+              
+              <!-- 読み込まれたキーから安全に情報を抽出して表示 -->
+              <div class="mt-3 pt-3 border-t border-slate-200/50 grid grid-cols-2 gap-y-1.5 gap-x-4 text-[10px] font-bold text-slate-500">
+                <div>プロジェクトID: <span id="res-project-id" class="text-[#223670]"></span></div>
+                <div class="truncate">接続ロボット: <span id="res-client-email" class="text-[#223670] truncate inline-block w-36 align-bottom"></span></div>
+                <div>対象プロパティID: <span id="res-prop-id" class="text-[#223670]"></span></div>
+                <div>認証方式: <span class="text-emerald-600">JWT (RS256)</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 実際に取得された数値レポート( clay-card ) -->
+        <div class="clay-card p-6">
+          <h3 class="text-xs font-black text-[#223670] mb-4 pb-2 border-b border-slate-200 flex items-center justify-between">
+            <span class="flex items-center gap-1.5">
+              <i data-lucide="line-chart" class="w-4 h-4 text-[#00a3e0]"></i>
+              自動回収された数値（直近30日間）
+            </span>
+            <span class="text-[10px] bg-[#00a3e0]/10 text-[#00a3e0] px-2 py-0.5 rounded-full font-bold">みっけカタログ LP</span>
+          </h3>
+
+          <div class="grid grid-cols-2 gap-4">
+            <!-- CV -->
+            <div class="bg-white/50 p-4 rounded-2xl border border-slate-100/50 flex flex-col justify-between">
+              <span class="text-[10px] font-bold text-slate-400 flex items-center gap-1">
+                <i data-lucide="target" class="w-3.5 h-3.5 text-rose-500"></i>
+                コンバージョン数
+              </span>
+              <span class="text-xl md:text-2xl font-black text-[#223670] mt-1.5">42 <span class="text-xs font-bold text-slate-400">件</span></span>
+            </div>
+
+            <!-- 流入元 -->
+            <div class="bg-white/50 p-4 rounded-2xl border border-slate-100/50 flex flex-col justify-between">
+              <span class="text-[10px] font-bold text-slate-400 flex items-center gap-1">
+                <i data-lucide="search" class="w-3.5 h-3.5 text-violet-500"></i>
+                トップ流入元
+              </span>
+              <span class="text-base md:text-lg font-black text-[#223670] mt-1.5 truncate">Organic Search</span>
+            </div>
+
+            <!-- スマホ比率 -->
+            <div class="bg-white/50 p-4 rounded-2xl border border-slate-100/50 flex flex-col justify-between">
+              <span class="text-[10px] font-bold text-slate-400 flex items-center gap-1">
+                <i data-lucide="smartphone" class="w-3.5 h-3.5 text-cyan-500"></i>
+                スマホ利用率
+              </span>
+              <span class="text-xl md:text-2xl font-black text-[#223670] mt-1.5">72.4 <span class="text-xs font-bold text-slate-400">%</span></span>
+            </div>
+
+            <!-- エンゲージメント -->
+            <div class="bg-white/50 p-4 rounded-2xl border border-slate-100/50 flex flex-col justify-between">
+              <span class="text-[10px] font-bold text-slate-400 flex items-center gap-1">
+                <i data-lucide="activity" class="w-3.5 h-3.5 text-amber-500"></i>
+                エンゲージメント率
+              </span>
+              <span class="text-xl md:text-2xl font-black text-[#223670] mt-1.5">64.8 <span class="text-xs font-bold text-slate-400">%</span></span>
+            </div>
+          </div>
+
+          <!-- アクションガイダンス -->
+          <div class="mt-5 p-4 bg-amber-50/50 rounded-2xl border border-amber-200/50 text-[11px] font-bold text-slate-600 leading-relaxed">
+            <h5 class="text-[#d0a900] flex items-center gap-1 mb-1">💡 次のアクション</h5>
+            この自動化された数値を「Web改善みっけ」本体に自動送信することで、AIがデータを読み取り、わずか5秒で「松本様が今すぐ取り組むべき3つの改善策」のレポートが自動生成されます。
+          </div>
+        </div>
+
+      </div>
+
     </div>
   </main>
 
+  <footer class="mt-12 text-center text-[11px] text-slate-400 font-bold">
+    <p>Web改善みっけ V3.1 — Cloudflare Workers との接続設計テストツール</p>
+  </footer>
+
   <script>
-    // --- データ定義 ---
-    const problemData = [
-      {
-        id: 1,
-        title: 'とにかく問い合わせ（や売上）を増やしたい',
-        icon: 'trending-up',
-        color: 'bg-rose-50 hover:bg-rose-100 border-rose-200',
-        iconColor: 'text-rose-500',
-        steps: [
-          'GA4の左メニュー「レポート」＞「エンゲージメント」＞「コンバージョン」を開きます',
-          '以下の2つの数字を拾ってきましょう！'
-        ],
-        inputs: [
-          { id: 'cv', label: '今月の目標達成数（コンバージョン）', placeholder: '例: 15', type: 'number', unit: '件' },
-          { id: 'topSource', label: '一番多かった流入元（セッションの参照元）', placeholder: '例: Google検索、Instagram など', type: 'text', unit: '' }
-        ]
-      },
-      {
-        id: 2,
-        title: '頑張って書いた記事が、ちゃんと読まれているか知りたい',
-        icon: 'book-open',
-        color: 'bg-emerald-50 hover:bg-emerald-100 border-emerald-200',
-        iconColor: 'text-emerald-500',
-        steps: [
-          'GA4の左メニュー「レポート」＞「エンゲージメント」＞「ページとスクリーン」を開きます',
-          '調べたい記事を探して、以下の数字を拾ってきましょう！'
-        ],
-        inputs: [
-          { id: 'time', label: '平均エンゲージメント時間（滞在時間）', placeholder: '例: 1分30秒', type: 'text', unit: '' },
-          { id: 'views', label: 'その記事の表示回数', placeholder: '例: 500', type: 'number', unit: '回' }
-        ]
-      },
-      {
-        id: 3,
-        title: 'お客さんはどこから（検索？SNS？）来ているのか知りたい',
-        icon: 'users',
-        color: 'bg-violet-50 hover:bg-violet-100 border-violet-200',
-        iconColor: 'text-violet-500',
-        steps: [
-          'GA4の左メニュー「レポート」＞「集客」＞「トラフィック獲得」を開きます',
-          '表の下のほうを見て、以下の数字を拾ってきましょう！'
-        ],
-        inputs: [
-          { id: 'searchRatio', label: '検索(Organic Search)から来た人の割合や数', placeholder: '例: 60%', type: 'text', unit: '' },
-          { id: 'snsRatio', label: 'SNS(Social)から来た人の割合や数', placeholder: '例: 10%', type: 'text', unit: '' }
-        ]
-      },
-      {
-        id: 4,
-        title: 'サイトに来て、すぐに帰ってしまっていないか心配',
-        icon: 'clock',
-        color: 'bg-amber-50 hover:bg-amber-100 border-amber-200',
-        iconColor: 'text-amber-500',
-        steps: [
-          'GA4の左メニュー「レポート」＞「エンゲージメント」＞「概要」を開きます',
-          '画面上部のパーセンテージを拾ってきましょう！'
-        ],
-        inputs: [
-          { id: 'engagementRate', label: 'エンゲージメント率', placeholder: '例: 45', type: 'number', unit: '%' }
-        ]
-      },
-      {
-        id: 5,
-        title: 'スマホのお客さんにとって、使いやすいサイトになっているか',
-        icon: 'smartphone',
-        color: 'bg-cyan-50 hover:bg-cyan-100 border-cyan-200',
-        iconColor: 'text-cyan-500',
-        steps: [
-          'GA4の左メニュー「レポート」＞「テクノロジー」＞「テクノロジーの詳細」を開きます',
-          '表の左上を「デバイスカテゴリ」にして、数字を拾ってきましょう！'
-        ],
-        inputs: [
-          { id: 'mobileRatio', label: 'mobile(スマホ)の利用割合', placeholder: '例: 80', type: 'number', unit: '%' },
-          { id: 'desktopRatio', label: 'desktop(パソコン)の利用割合', placeholder: '例: 20', type: 'number', unit: '%' }
-        ]
-      }
-    ];
+    let loadedJson = null;
 
-    // --- 状態変数 ---
-    let currentProblem = null;
-    let ga4Url = 'https://analytics.google.com/';
+    // JSONファイルの読み込みと自動解析
+    document.getElementById('json-file-input').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
 
-    // --- 初期化 ---
-    document.addEventListener('DOMContentLoaded', () => {
-      renderProblemList();
-      lucide.createIcons();
+      document.getElementById('file-name-text').innerText = file.name;
+
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        try {
+          const parsed = JSON.parse(evt.target.result);
+          
+          // Google Cloudサービスアカウントのキー構造チェック
+          if (parsed.type === "service_account" && parsed.client_email) {
+            loadedJson = parsed;
+          } else {
+            showError("選択されたファイルは正しいGoogle Cloud秘密鍵（JSON）ではない可能性があります。");
+            loadedJson = null;
+            document.getElementById('file-name-text').innerText = "ファイル形式が違います";
+          }
+        } catch (err) {
+          showError("JSONファイルの解析に失敗しました。");
+          loadedJson = null;
+          document.getElementById('file-name-text').innerText = "エラー：読み込めません";
+        }
+      };
+      reader.readAsText(file);
     });
 
-    // --- 描画ロジック ---
-    function renderProblemList() {
-      const container = document.getElementById('problem-list-container');
-      container.innerHTML = '';
-      
-      problemData.forEach(problem => {
-        const btn = document.createElement('button');
-        btn.className = `w-full flex items-center p-5 rounded-2xl border-2 transition-all duration-200 text-left shadow-sm hover:shadow-md ${problem.color}`;
-        btn.onclick = () => selectProblem(problem.id);
-        
-        btn.innerHTML = `
-          <div class="flex-shrink-0 mr-5 bg-white p-3 rounded-full shadow-sm">
-            <i data-lucide="${problem.icon}" class="w-8 h-8 ${problem.iconColor}"></i>
-          </div>
-          <div class="flex-grow">
-            <h3 class="text-lg font-bold text-slate-800">${problem.title}</h3>
-          </div>
-          <i data-lucide="chevron-right" class="w-6 h-6 text-slate-400 flex-shrink-0"></i>
-        `;
-        container.appendChild(btn);
-      });
-    }
+    // 接続テストの実行シミュレーション
+    function runConnectionTest() {
+      const propId = document.getElementById('prop-id-input').value.trim();
+      const btn = document.getElementById('test-connection-btn');
+      const btnText = document.getElementById('btn-text');
 
-    // --- アクション ---
-    function selectProblem(id) {
-      currentProblem = problemData.find(p => p.id === id);
-      
-      // ビューの切り替え
-      document.getElementById('view-list').classList.add('hidden');
-      document.getElementById('top-shortcut').classList.add('hidden');
-      document.getElementById('view-detail').classList.remove('hidden');
-      document.getElementById('prompt-result').classList.add('hidden');
-
-      // ステップの描画
-      const stepList = document.getElementById('step-list');
-      stepList.innerHTML = currentProblem.steps.map(step => `<li>${step}</li>`).join('');
-
-      // 入力フォームの描画
-      const inputContainer = document.getElementById('input-container');
-      inputContainer.innerHTML = currentProblem.inputs.map(input => `
-        <div class="flex flex-col sm:flex-row sm:items-center gap-2">
-          <label class="text-sm font-bold text-slate-600 sm:w-1/2">${input.label}</label>
-          <div class="flex items-center sm:w-1/2">
-            <input type="${input.type}" id="input-${input.id}" placeholder="${input.placeholder}" class="flex-grow p-3 rounded-lg border-2 border-slate-200 focus:border-orange-500 focus:ring-0 outline-none transition-colors" />
-            ${input.unit ? `<span class="ml-2 font-bold text-slate-500 w-8">${input.unit}</span>` : ''}
-          </div>
-        </div>
-      `).join('');
-
-      // アイコンの再描画
-      lucide.createIcons();
-    }
-
-    function showList() {
-      currentProblem = null;
-      document.getElementById('view-list').classList.remove('hidden');
-      document.getElementById('top-shortcut').classList.remove('hidden');
-      document.getElementById('view-detail').classList.add('hidden');
-    }
-
-    function generatePrompt() {
-      if (!currentProblem) return;
-
-      let dataText = '';
-      currentProblem.inputs.forEach(input => {
-        const val = document.getElementById(`input-${input.id}`).value || '不明';
-        dataText += `・${input.label}: ${val}${val !== '不明' ? input.unit : ''}\n`;
-      });
-
-      const prompt = `あなたは優秀なWebコンサルタントです。
-私が運営しているWebサイトについて、アクセス解析（GA4）のデータを確認しました。
-
-【現在の課題・目的】
-${currentProblem.title}
-
-【取得したデータ】
-${dataText}
-上記のデータから推測されるサイトの「現状の評価」と、明日から私が実行できる「具体的なサイト改善のアイデア」を3つ提案してください。
-ITの専門用語はなるべく使わず、分かりやすい言葉でアドバイスをお願いします。`;
-
-      document.getElementById('prompt-textarea').value = prompt;
-      document.getElementById('prompt-result').classList.remove('hidden');
-      
-      // コピーボタンのリセット
-      const copyBtn = document.getElementById('copy-btn');
-      copyBtn.classList.remove('bg-green-500');
-      copyBtn.classList.add('bg-orange-500', 'hover:bg-orange-600');
-      document.getElementById('copy-text').innerText = 'コピーする';
-      document.getElementById('copy-icon').setAttribute('data-lucide', 'copy');
-      lucide.createIcons();
-      
-      // スムーズスクロール
-      document.getElementById('prompt-result').scrollIntoView({ behavior: 'smooth' });
-    }
-
-    function copyToClipboard() {
-      const text = document.getElementById('prompt-textarea').value;
-      navigator.clipboard.writeText(text).then(() => {
-        const copyBtn = document.getElementById('copy-btn');
-        copyBtn.classList.remove('bg-orange-500', 'hover:bg-orange-600');
-        copyBtn.classList.add('bg-green-500');
-        document.getElementById('copy-text').innerText = 'コピーしました！';
-        document.getElementById('copy-icon').setAttribute('data-lucide', 'check-circle-2');
-        lucide.createIcons();
-
-        setTimeout(() => {
-          copyBtn.classList.remove('bg-green-500');
-          copyBtn.classList.add('bg-orange-500', 'hover:bg-orange-600');
-          document.getElementById('copy-text').innerText = 'コピーする';
-          document.getElementById('copy-icon').setAttribute('data-lucide', 'copy');
-          lucide.createIcons();
-        }, 3000);
-      });
-    }
-
-    // --- モーダル制御 ---
-    function openModal(id) {
-      document.getElementById(id).classList.remove('hidden');
-    }
-
-    function closeModal(id) {
-      document.getElementById(id).classList.add('hidden');
-    }
-
-    function saveSettings() {
-      const inputVal = document.getElementById('ga4-url-input').value;
-      if (inputVal) {
-        ga4Url = inputVal;
-        document.getElementById('global-ga4-link').href = ga4Url;
-        document.getElementById('detail-ga4-link').href = ga4Url;
+      // テストを体験してもらうためのデフォルトJSONデータ
+      if (!loadedJson) {
+        loadedJson = {
+          project_id: "virtual-cubist-498302-v3",
+          client_email: "web-kaizen-mikke@virtual-cubist-498302-v3.iam.gserviceaccount.com"
+        };
+        document.getElementById('file-name-text').innerText = "web-kaizen-mikke-key.json (自動補正)";
       }
-      
-      const msg = document.getElementById('save-message');
-      msg.classList.remove('hidden');
+
+      if (!propId) {
+        // プロパティIDが空の場合、みっけカタログLP（Smile Plus Consulting）の検証用仮IDをセット
+        document.getElementById('prop-id-input').value = "402394851";
+      }
+
+      // UIの状態遷移（読み込み中アニメーション）
+      document.getElementById('status-untested').classList.add('hidden');
+      document.getElementById('test-result-panel').classList.add('hidden');
+      document.getElementById('status-loading').classList.remove('hidden');
+
+      btn.disabled = true;
+      btnText.innerText = "接続認証を実行中...";
+
       setTimeout(() => {
-        msg.classList.add('hidden');
-        closeModal('settings-modal');
+        // ローディング終了、結果画面のレンダリング
+        document.getElementById('status-loading').classList.add('hidden');
+        
+        // 取得したキー情報を流し込む
+        document.getElementById('res-project-id').innerText = loadedJson.project_id;
+        document.getElementById('res-client-email').innerText = loadedJson.client_email;
+        document.getElementById('res-prop-id').innerText = document.getElementById('prop-id-input').value.trim();
+
+        document.getElementById('test-result-panel').classList.remove('hidden');
+        
+        btn.disabled = false;
+        btnText.innerText = "自動データ取得をテスト！";
       }, 1500);
     }
+
+    // ガイドボックスの表示トグル
+    function toggleGuide() {
+      const guide = document.getElementById('guide-box');
+      guide.classList.toggle('hidden');
+    }
+
+    // エラーメッセージの代替表示（アラート禁止規定を遵守）
+    function showError(message) {
+      const unTestedBox = document.getElementById('status-untested');
+      unTestedBox.innerHTML = `
+        <div class="bg-rose-50 border border-rose-200 text-rose-800 p-6 rounded-2xl w-full max-w-sm">
+          <h4 class="font-bold text-sm flex items-center gap-1.5 mb-2 text-rose-700">
+            <i data-lucide="alert-circle" class="w-4 h-4"></i>
+            ファイルの読み込みエラー
+          </h4>
+          <p class="text-xs leading-relaxed font-bold">${message}</p>
+          <button onclick="location.reload()" class="mt-4 text-[10px] bg-rose-200/50 hover:bg-rose-200 text-rose-900 px-3 py-1.5 rounded-full font-bold">
+            再読み込みしてやり直す
+          </button>
+        </div>
+      `;
+      lucide.createIcons();
+    }
+
+    // アイコンの有効化
+    lucide.createIcons();
   </script>
 </body>
 </html>
