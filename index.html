@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>自動分析みっけ V4.1 (ビジュアル極み・エラー修正版)</title>
+  <title>自動分析みっけ V4.2 (ビジュアル極み・超Null安全版)</title>
   
   <!-- favicon（ファビコン）の表示設定 -->
   <link rel="icon" href="https://spc-jp.github.io/web-kaizen-mikke/favicon.png" type="image/png">
@@ -12,7 +12,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- 確実に読み込める UMD版 Lucide Icons -->
   <script src="https://cdn.jsdelivr.net/npm/lucide@0.344.0/dist/umd/lucide.min.js"></script>
-  <!-- 📈 お客様を驚かせるグラフ描画ライブラリ Chart.js (CDN経由) -->
+  <!-- 📈 グラフ描画ライブラリ Chart.js (CDN経由) -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   
   <style>
@@ -339,7 +339,7 @@
       </div>
       <div>
         <h1 class="text-xl md:text-2xl font-black text-[#223670] tracking-tight">
-          自動分析みっけ <span class="bg-[#223670]/10 text-[#223670] text-xs px-2.5 py-0.5 rounded-full font-bold ml-1.5">V4.1 VISUAL</span>
+          自動分析みっけ <span class="bg-[#223670]/10 text-[#223670] text-xs px-2.5 py-0.5 rounded-full font-bold ml-1.5">V4.2 VISUAL-SAFE</span>
         </h1>
         <p class="text-[11px] text-[#00a3e0] font-bold tracking-wide mt-0.5">
           「考えるを、ひとりにしない。」 Smile Plus Consulting様 接続検証＆AIレポート出力ツール
@@ -516,6 +516,8 @@
               <!-- 📈 お客さま驚き要素A：デバイス比率リアルタイムドーナツチャート！ -->
               <div class="h-[80px] w-full flex items-center justify-center py-1">
                 <canvas id="deviceChart" class="max-h-full max-w-full"></canvas>
+                <!-- 🌟 超防弾用フォールバックコンテナ（Chart.js未ロード時に作動） -->
+                <div id="deviceChartFallback" class="hidden w-full flex items-center justify-center"></div>
               </div>
               <span class="text-[9px] font-black text-slate-400 text-center pb-1">
                 モバイル vs デスクトップ比率（リアル可視化）
@@ -576,13 +578,39 @@
   </main>
 
   <footer class="mt-12 text-center text-[11px] text-slate-400 font-bold no-print">
-    <p>Web改善みっけ V4.1 — Google Cloud & GA4 実機接続テスト検証</p>
+    <p>Web改善みっけ V4.2 — Google Cloud & GA4 実機接続テスト検証</p>
   </footer>
 
   <script>
     let loadedJson = null;
     let fetchedDataCache = null; // 本物のWorkersから取得したデータの保存用
     let deviceChartInstance = null; // デバイス割合のChartインスタンス
+
+    // 🛡️ 堅牢なDOM操作・Null安全ガードヘルパー関数群
+    function safeGetValue(id, defaultValue = "") {
+      const el = document.getElementById(id);
+      return el ? el.value.trim() : defaultValue;
+    }
+
+    function safeSetValue(id, val) {
+      const el = document.getElementById(id);
+      if (el) el.value = val;
+    }
+
+    function safeSetText(id, text) {
+      const el = document.getElementById(id);
+      if (el) el.innerText = text;
+    }
+
+    function safeAddClass(id, className) {
+      const el = document.getElementById(id);
+      if (el) el.classList.add(className);
+    }
+
+    function safeRemoveClass(id, className) {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove(className);
+    }
 
     // 安全にアイコンを生成するためのラッパー
     function initIcons() {
@@ -591,51 +619,83 @@
       }
     }
 
-    // 📈 驚き要素：Chart.jsでのデバイス比率ドーナツグラフ初期化・更新
+    // 📈 驚き要素：Chart.jsでのデバイス比率ドーナツグラフ初期化・更新 (🌟防弾フォールバックを完全実装！)
     function updateDeviceChart(mobileRatioVal) {
       const mobile = parseFloat(mobileRatioVal) || 76.8;
       const desktop = parseFloat((100 - mobile).toFixed(1));
       
       const ctx = document.getElementById('deviceChart');
+      const fallbackEl = document.getElementById('deviceChartFallback');
       if (!ctx) return;
 
-      // すでにグラフがある場合は破棄して再作成（アニメーションが毎回動いてお客様が驚く）
-      if (deviceChartInstance) {
-        deviceChartInstance.destroy();
-      }
+      // Chart.jsが無事読み込まれている場合のみグラフ処理をする
+      if (typeof Chart !== 'undefined') {
+        if (fallbackEl) fallbackEl.classList.add('hidden');
+        ctx.classList.remove('hidden');
 
-      try {
-        deviceChartInstance = new Chart(ctx, {
-          type: 'doughnut',
-          data: {
-            labels: ['スマホ', 'PC'],
-            datasets: [{
-              data: [mobile, desktop],
-              backgroundColor: ['#00a3e0', '#223670'],
-              borderWidth: 0,
-              hoverOffset: 4
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: {
-                display: false // スッキリさせるため凡例は非表示
-              },
-              tooltip: {
-                callbacks: {
-                  label: function(context) {
-                    return ` ${context.label}: ${context.raw}%`;
+        if (deviceChartInstance) {
+          deviceChartInstance.destroy();
+        }
+
+        try {
+          deviceChartInstance = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+              labels: ['スマホ', 'PC'],
+              datasets: [{
+                data: [mobile, desktop],
+                backgroundColor: ['#00a3e0', '#223670'],
+                borderWidth: 0,
+                hoverOffset: 4
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: {
+                  display: false // スッキリさせるため凡例は非表示
+                },
+                tooltip: {
+                  callbacks: {
+                    label: function(context) {
+                      return ` ${context.label}: ${context.raw}%`;
+                    }
                   }
                 }
-              }
-            },
-            cutout: '65%'
-          }
-        });
-      } catch (e) {
-        console.error("Chart creation failed: ", e);
+              },
+              cutout: '65%'
+            }
+          });
+        } catch (e) {
+          console.error("ドーナツグラフ描画エラー: ", e);
+          showDeviceChartFallback(mobile, desktop);
+        }
+      } else {
+        // Chart.jsがロードされていない場合は、超美しいカラーバーで代替表示！
+        showDeviceChartFallback(mobile, desktop);
+      }
+    }
+
+    // 📈 ドーナツチャート未ロード時の超美しいフォールバックデザイン
+    function showDeviceChartFallback(mobile, desktop) {
+      const ctx = document.getElementById('deviceChart');
+      const fallbackEl = document.getElementById('deviceChartFallback');
+      if (ctx) ctx.classList.add('hidden');
+      if (fallbackEl) {
+        fallbackEl.classList.remove('hidden');
+        fallbackEl.innerHTML = `
+          <div class="w-full flex flex-col gap-2 p-2">
+            <div class="flex justify-between text-[10px] font-black text-slate-500">
+              <span class="text-[#00a3e0]">スマホ: ${mobile}%</span>
+              <span class="text-[#223670]">PC: ${desktop}%</span>
+            </div>
+            <div class="w-full h-3 bg-slate-200 rounded-full overflow-hidden flex shadow-inner">
+              <div class="bg-[#00a3e0] h-full transition-all duration-500" style="width: ${mobile}%"></div>
+              <div class="bg-[#223670] h-full transition-all duration-500" style="width: ${desktop}%"></div>
+            </div>
+          </div>
+        `;
       }
     }
 
@@ -655,8 +715,7 @@
       // 今日の日付をセット
       const today = new Date();
       const formattedDate = `${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日`;
-      const dateSpan = document.getElementById('report-date-span');
-      if (dateSpan) dateSpan.innerText = formattedDate;
+      safeSetText('report-date-span', formattedDate);
 
       // サマリー画面の数値をリフレッシュ表示
       updateMainSummary();
@@ -683,30 +742,22 @@
 
     // 💡 サマリーカードの表示・非表示切り替えトグル処理
     function toggleStatusViewDisplay(isChecked) {
-      const card = document.getElementById('main-status-card');
-      const tips = document.getElementById('sub-tips-card');
-      
       if (isChecked) {
-        if (card) card.classList.remove('hidden');
-        if (tips) tips.classList.remove('hidden');
+        safeRemoveClass('main-status-card', 'hidden');
+        safeRemoveClass('sub-tips-card', 'hidden');
       } else {
-        if (card) card.classList.add('hidden');
-        if (tips) tips.classList.add('hidden');
+        safeAddClass('main-status-card', 'hidden');
+        safeAddClass('sub-tips-card', 'hidden');
       }
       localStorage.setItem('mikke_show_status', isChecked ? 'true' : 'false');
     }
 
     // ローカルストレージに設定を保存する
     function saveSettingsToStorage() {
-      const clientNameInput = document.getElementById('client-name-input');
-      const consultantNameInput = document.getElementById('consultant-name-input');
-      const propIdInput = document.getElementById('prop-id-input');
-      const workersUrlInput = document.getElementById('workers-url-input');
-
-      const clientName = clientNameInput ? clientNameInput.value.trim() : "";
-      const consultantName = consultantNameInput ? consultantNameInput.value.trim() : "";
-      const propId = propIdInput ? propIdInput.value.trim() : "";
-      const workersUrl = workersUrlInput ? workersUrlInput.value.trim() : "";
+      const clientName = safeGetValue('client-name-input');
+      const consultantName = safeGetValue('consultant-name-input');
+      const propId = safeGetValue('prop-id-input');
+      const workersUrl = safeGetValue('workers-url-input');
 
       localStorage.setItem('mikke_client_name', clientName);
       localStorage.setItem('mikke_consultant_name', consultantName);
@@ -724,15 +775,10 @@
       const workersUrl = localStorage.getItem('mikke_workers_url') || "";
       const statusViewChecked = localStorage.getItem('mikke_show_status') !== "false"; // デフォルトは表示
 
-      const clientNameInput = document.getElementById('client-name-input');
-      const consultantNameInput = document.getElementById('consultant-name-input');
-      const propIdInput = document.getElementById('prop-id-input');
-      const workersUrlInput = document.getElementById('workers-url-input');
-
-      if (clientNameInput) clientNameInput.value = clientName;
-      if (consultantNameInput) consultantNameInput.value = consultantName;
-      if (propIdInput) propIdInput.value = propId;
-      if (workersUrlInput) workersUrlInput.value = workersUrl;
+      safeSetValue('client-name-input', clientName);
+      safeSetValue('consultant-name-input', consultantName);
+      safeSetValue('prop-id-input', propId);
+      safeSetValue('workers-url-input', workersUrl);
       
       const toggleSwitch = document.getElementById('toggle-status-view');
       if (toggleSwitch) {
@@ -743,24 +789,14 @@
 
     // メイン画面の「ステータスサマリー」を最新の入力値に書き換える関数
     function updateMainSummary() {
-      const clientNameInput = document.getElementById('client-name-input');
-      const consultantNameInput = document.getElementById('consultant-name-input');
-      const propIdInput = document.getElementById('prop-id-input');
-      const workersUrlInput = document.getElementById('workers-url-input');
+      const clientName = safeGetValue('client-name-input', "みっけカタログ LP");
+      const consultantName = safeGetValue('consultant-name-input', "松本 治 (Smile Plus Consulting)");
+      const propId = safeGetValue('prop-id-input', "542302994");
+      const workersUrl = safeGetValue('workers-url-input');
 
-      const clientName = (clientNameInput ? clientNameInput.value.trim() : "") || "みっけカタログ LP";
-      const consultantName = (consultantNameInput ? consultantNameInput.value.trim() : "") || "松本 治 (Smile Plus Consulting)";
-      const propId = (propIdInput ? propIdInput.value.trim() : "") || "542302994";
-      const workersUrl = workersUrlInput ? workersUrlInput.value.trim() : "";
-
-      const statusClientName = document.getElementById('status-client-name');
-      const statusPropId = document.getElementById('status-prop-id');
-      if (statusClientName) statusClientName.innerText = clientName;
-      if (statusPropId) statusPropId.innerText = propId;
-      
-      // レポートヘッダーの報告者署名を更新
-      const repCons = document.getElementById('report-consultant-span');
-      if (repCons) repCons.innerText = consultantName;
+      safeSetText('status-client-name', clientName);
+      safeSetText('status-prop-id', propId);
+      safeSetText('report-consultant-span', consultantName);
 
       const statusMode = document.getElementById('status-mode');
       if (statusMode) {
@@ -782,15 +818,10 @@
     // 💡 デモデータの再ロード機能
     function loadDemoDataset() {
       // 1. デモ設定値を各インプットに適用
-      const clientNameInput = document.getElementById('client-name-input');
-      const consultantNameInput = document.getElementById('consultant-name-input');
-      const propIdInput = document.getElementById('prop-id-input');
-      const workersUrlInput = document.getElementById('workers-url-input');
-
-      if (clientNameInput) clientNameInput.value = "みっけカタログ LP";
-      if (consultantNameInput) consultantNameInput.value = "松本 治 (Smile Plus Consulting)";
-      if (propIdInput) propIdInput.value = "542302994";
-      if (workersUrlInput) workersUrlInput.value = ""; // デモモードへ強制リセット
+      safeSetValue('client-name-input', "みっけカタログ LP");
+      safeSetValue('consultant-name-input', "松本 治 (Smile Plus Consulting)");
+      safeSetValue('prop-id-input', "542302994");
+      safeSetValue('workers-url-input', ""); // デモモードへ強制リセット
       
       // 2. 暗号デモ鍵オブジェクトをセット
       loadedJson = {
@@ -798,13 +829,11 @@
         client_email: "web-kaizen-mikke@virtual-cubist-498302-v3.iam.gserviceaccount.com"
       };
       
-      const fileNameText = document.getElementById('file-name-text');
+      safeSetText('file-name-text', "web-kaizen-mikke-key.json (自動デモ)");
+      safeSetText('status-key-file', "web-kaizen-mikke-key.json");
+      
       const statusKeyFile = document.getElementById('status-key-file');
-      if (fileNameText) fileNameText.innerText = "web-kaizen-mikke-key.json (自動デモ)";
-      if (statusKeyFile) {
-        statusKeyFile.innerText = "web-kaizen-mikke-key.json";
-        statusKeyFile.title = "デモ用鍵情報ロード済";
-      }
+      if (statusKeyFile) statusKeyFile.title = "デモ用鍵情報ロード済";
 
       // 3. ストレージとメインサマリーを同期
       saveSettingsToStorage();
@@ -820,7 +849,7 @@
       // 5. デモチャートに再更新
       updateDeviceChart(76.8);
 
-      // 6. 設定画面を閉じる
+      // 6. 設定画面を閉じて、ユーザーに優しく通知
       toggleSettingsModal();
       showNotification("初期デモ用データセットをロードしました。");
     }
@@ -828,27 +857,20 @@
     // 💡 データの完全クリア（初期化）機能
     function clearDemoDataset() {
       // 1. インプットフィールドを完全に空にする
-      const clientNameInput = document.getElementById('client-name-input');
-      const consultantNameInput = document.getElementById('consultant-name-input');
-      const propIdInput = document.getElementById('prop-id-input');
-      const workersUrlInput = document.getElementById('workers-url-input');
-
-      if (clientNameInput) clientNameInput.value = "";
-      if (consultantNameInput) consultantNameInput.value = "";
-      if (propIdInput) propIdInput.value = "";
-      if (workersUrlInput) workersUrlInput.value = "";
+      safeSetValue('client-name-input', "");
+      safeSetValue('consultant-name-input', "");
+      safeSetValue('prop-id-input', "");
+      safeSetValue('workers-url-input', "");
       
       // 2. 鍵とキャッシュの破棄
       loadedJson = null;
       fetchedDataCache = null;
       
-      const fileNameText = document.getElementById('file-name-text');
+      safeSetText('file-name-text', "ファイルを選択してください (.json)");
+      safeSetText('status-key-file', "未選択");
+      
       const statusKeyFile = document.getElementById('status-key-file');
-      if (fileNameText) fileNameText.innerText = "ファイルを選択してください (.json)";
-      if (statusKeyFile) {
-        statusKeyFile.innerText = "未選択";
-        statusKeyFile.title = "鍵ファイルがセットされていません";
-      }
+      if (statusKeyFile) statusKeyFile.title = "鍵ファイルがセットされていません";
 
       // 3. ストレージのデータを消去
       localStorage.removeItem('mikke_client_name');
@@ -860,51 +882,15 @@
       updateMainSummary();
       
       // 5. テスト結果を引っ込めて初期ウェルカム表示へ戻す
-      const testResultPanel = document.getElementById('test-result-panel');
-      const statusUntested = document.getElementById('status-untested');
-      if (testResultPanel) testResultPanel.classList.add('hidden');
-      if (statusUntested) statusUntested.classList.remove('hidden');
+      safeAddClass('test-result-panel', 'hidden');
+      safeRemoveClass('status-untested', 'hidden');
 
       // 6. グラフもゼロクリア
       updateDeviceChart(50.0);
 
-      // 7. 設定画面を閉じる
+      // 7. 設定画面を閉じて、ユーザーに優しく通知
       toggleSettingsModal();
       showNotification("表示データとストレージ環境設定を完全に初期化しました！");
-    }
-
-    // カスタム通知を表示する関数 (alert代替)
-    function showNotification(msg, isSuccess = true) {
-      const el = document.getElementById('inline-notification');
-      const textEl = document.getElementById('notification-text');
-      const iconEl = document.getElementById('notification-icon');
-      
-      // 要素が画面上に確実に存在するときのみ操作を実行
-      if (el && textEl) {
-        textEl.innerText = msg;
-        if (iconEl) {
-          if (isSuccess) {
-            el.classList.remove('bg-amber-50', 'text-amber-800', 'border-amber-200');
-            el.classList.add('bg-emerald-50', 'text-emerald-800', 'border-emerald-200');
-            iconEl.setAttribute('data-lucide', 'check-circle');
-            iconEl.className = "w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5";
-          } else {
-            el.classList.remove('bg-emerald-50', 'text-emerald-800', 'border-emerald-200');
-            el.classList.add('bg-amber-50', 'text-amber-800', 'border-amber-200');
-            iconEl.setAttribute('data-lucide', 'alert-triangle');
-            iconEl.className = "w-4 h-4 text-[#d0a900] flex-shrink-0 mt-0.5";
-          }
-        }
-        el.classList.remove('hidden');
-        initIcons();
-        
-        // 5秒後に自動消去
-        setTimeout(() => {
-          el.classList.add('hidden');
-        }, 5000);
-      } else {
-        console.log("Notification: " + msg);
-      }
     }
 
     // JSONファイルの読み込みと自動解析
@@ -912,16 +898,13 @@
       const file = e.target.files[0];
       if (!file) return;
 
-      const fileNameText = document.getElementById('file-name-text');
-      const statusKeyFile = document.getElementById('status-key-file');
-      if (fileNameText) fileNameText.innerText = file.name;
-      if (statusKeyFile) {
-        statusKeyFile.innerText = file.name;
-        statusKeyFile.title = "秘密鍵JSONロード済";
-      }
+      safeSetText('file-name-text', file.name);
+      safeSetText('status-key-file', file.name);
       
-      const inlineNotification = document.getElementById('inline-notification');
-      if (inlineNotification) inlineNotification.classList.add('hidden'); // 通知を非表示
+      const statusKeyFile = document.getElementById('status-key-file');
+      if (statusKeyFile) statusKeyFile.title = "秘密鍵JSONロード済";
+      
+      safeAddClass('inline-notification', 'hidden'); // 通知を非表示
 
       const reader = new FileReader();
       reader.onload = function(evt) {
@@ -935,13 +918,13 @@
           } else {
             showError("選択されたファイルは、Google Cloudから発行された正しい秘密鍵（JSON）ではない可能性があります。");
             loadedJson = null;
-            if (fileNameText) fileNameText.innerText = "形式が違います";
+            safeSetText('file-name-text', "形式が違います");
           }
         } catch (err) {
           showError("JSONファイルの解析に失敗しました。正しいファイルか確認してください。");
           loadedJson = null;
-          if (fileNameText) fileNameText.innerText = "エラー：読み込めません";
-          if (statusKeyFile) statusKeyFile.innerText = "読み込みエラー";
+          safeSetText('file-name-text', "エラー：読み込めません");
+          safeSetText('status-key-file', "読み込みエラー");
         }
       };
       reader.readAsText(file);
@@ -952,15 +935,11 @@
       // 実行前に最新の値を格納・同期
       updateMainSummary();
 
-      const propIdInput = document.getElementById('prop-id-input');
-      const workersUrlInput = document.getElementById('workers-url-input');
-      const clientNameInput = document.getElementById('client-name-input');
+      const propId = safeGetValue('prop-id-input');
+      const workersUrl = safeGetValue('workers-url-input');
+      const clientName = safeGetValue('client-name-input', "みっけカタログ LP");
       const btn = document.getElementById('test-connection-btn');
       const btnText = document.getElementById('btn-text');
-
-      const propId = propIdInput ? propIdInput.value.trim() : "";
-      const workersUrl = workersUrlInput ? workersUrlInput.value.trim() : "";
-      const clientName = (clientNameInput ? clientNameInput.value.trim() : "") || "みっけカタログ LP";
 
       if (!propId) {
         showNotification("「設定⚙️」画面を開いて、プロパティIDを入力してからテストしてください。", false);
@@ -969,23 +948,17 @@
       }
 
       // UIの状態遷移
-      const statusUntested = document.getElementById('status-untested');
-      const testResultPanel = document.getElementById('test-result-panel');
-      const statusLoading = document.getElementById('status-loading');
-
-      if (statusUntested) statusUntested.classList.add('hidden');
-      if (testResultPanel) testResultPanel.classList.add('hidden');
-      if (statusLoading) statusLoading.classList.remove('hidden');
+      safeAddClass('status-untested', 'hidden');
+      safeAddClass('test-result-panel', 'hidden');
+      safeRemoveClass('status-loading', 'hidden');
 
       if (btn) btn.disabled = true;
       if (btnText) btnText.innerText = "接続認証を実行中...";
 
       // 🚀 Workers URLがセットされている場合は「本物のAPI通信」を行う
       if (workersUrl) {
-        const loadingTitle = document.getElementById('loading-title');
-        const loadingSubtitle = document.getElementById('loading-subtitle');
-        if (loadingTitle) loadingTitle.innerText = "本番 Cloudflare Workers に接続中...";
-        if (loadingSubtitle) loadingSubtitle.innerText = "GA4のリアルタイム実機データとGemini AI分析結果を直に取得しています。";
+        safeSetText('loading-title', "本番 Cloudflare Workers に接続中...");
+        safeSetText('loading-subtitle', "GA4のリアルタイム実機データとGemini AI分析結果を直に取得しています。");
 
         try {
           const response = await fetch(workersUrl, {
@@ -1007,31 +980,22 @@
           fetchedDataCache = resultData; // 取得データを保持
 
           // UI表示を本物のデータに書き換える
-          const metricCv = document.getElementById('metric-cv');
-          const metricSource = document.getElementById('metric-source');
-          const metricMobile = document.getElementById('metric-mobile');
-          const metricEngagement = document.getElementById('metric-engagement');
-
-          if (metricCv) metricCv.innerText = resultData.cv || 0;
-          if (metricSource) metricSource.innerText = resultData.topSource || "なし";
-          if (metricMobile) metricMobile.innerText = resultData.mobileRatio || 0.0;
-          if (metricEngagement) metricEngagement.innerText = resultData.engagementRate || 0.0;
+          safeSetText('metric-cv', resultData.cv || 0);
+          safeSetText('metric-source', resultData.topSource || "なし");
+          safeSetText('metric-mobile', resultData.mobileRatio || 0.0);
+          safeSetText('metric-engagement', resultData.engagementRate || 0.0);
 
           // 本物の数値に基づいて円グラフをアニメーション更新！
           updateDeviceChart(resultData.mobileRatio || 76.8);
 
           // 実機連携ステータスの書き換え
-          const resStatusTitle = document.getElementById('res-status-title');
-          const resStatusSubtitle = document.getElementById('res-status-subtitle');
-          const resAuthMethod = document.getElementById('res-auth-method');
-
-          if (resStatusTitle) resStatusTitle.innerText = "✓ 本番中継 Workers & GA4 連携に完全成功！";
-          if (resStatusSubtitle) resStatusSubtitle.innerText = `Cloudflare Workers上の安全な鍵認証をパスし、${clientName} の実機レポート生成に成功しました。`;
-          if (resAuthMethod) resAuthMethod.innerText = "Workers中継 JWT (RS256) 本番同期";
+          safeSetText('res-status-title', "✓ 本番中継 Workers & GA4 連携に完全成功！");
+          safeSetText('res-status-subtitle', `Cloudflare Workers上の安全な鍵認証をパスし、${clientName} の実機レポート生成に成功しました。`);
+          safeSetText('res-auth-method', "Workers中継 JWT (RS256) 本番同期");
 
         } catch (err) {
           // 本番接続でエラーになった場合はエラーを親切に表示
-          if (statusLoading) statusLoading.classList.add('hidden');
+          safeAddClass('status-loading', 'hidden');
           showError(`Workers接続エラー: ${err.message}。WorkersのURL、CORS設定、または環境変数をご確認ください。`);
           if (btn) btn.disabled = false;
           if (btnText) btnText.innerText = "自動データ取得をテスト！";
@@ -1039,62 +1003,49 @@
         }
       } else {
         // Workers URLが無い場合はいつもの高精度シミュレーションを実行
-        const loadingTitle = document.getElementById('loading-title');
-        const loadingSubtitle = document.getElementById('loading-subtitle');
-        if (loadingTitle) loadingTitle.innerText = "Google API 経由で実機データを接続テスト中...測定結果を受信しています。";
-        if (loadingSubtitle) loadingSubtitle.innerText = "暗号キー（JWT署名）を解析し、GA4との安全な通信経路を構築しています。";
+        safeSetText('loading-title', "Google API 経由で実機データを接続テスト中...測定結果を受信しています。");
+        safeSetText('loading-subtitle', "暗号キー（JWT署名）を解析し、GA4との安全な通信経路を構築しています。");
         fetchedDataCache = null; // デモモード
 
         // 標準数値にリセット
-        const metricCv = document.getElementById('metric-cv');
-        const metricSource = document.getElementById('metric-source');
-        const metricMobile = document.getElementById('metric-mobile');
-        const metricEngagement = document.getElementById('metric-engagement');
-
-        if (metricCv) metricCv.innerText = "84";
-        if (metricSource) metricSource.innerText = "Organic Search";
-        if (metricMobile) metricMobile.innerText = "76.8";
-        if (metricEngagement) metricEngagement.innerText = "68.2";
+        safeSetText('metric-cv', "84");
+        safeSetText('metric-source', "Organic Search");
+        safeSetText('metric-mobile', "76.8");
+        safeSetText('metric-engagement', "68.2");
 
         // シミュレーション円グラフ描画
         updateDeviceChart(76.8);
 
-        const resStatusTitle = document.getElementById('res-status-title');
-        const resStatusSubtitle = document.getElementById('res-status-subtitle');
-        const resAuthMethod = document.getElementById('res-auth-method');
-
-        if (resStatusTitle) resStatusTitle.innerText = "✓ 実機連携に成功！データの通信経路が正常に確立されました";
-        if (resStatusSubtitle) resStatusSubtitle.innerText = `Google Cloud認証を突破し、${clientName} の閲覧権限（安全なSSL接続）が一致しました。`;
-        if (resAuthMethod) resAuthMethod.innerText = "JWT (RS256) 標準準拠";
+        safeSetText('res-status-title', "✓ 実機連携に成功！データの通信経路が正常に確立されました");
+        safeSetText('res-status-subtitle', `Google Cloud認証を突破し、${clientName} の閲覧権限（安全なSSL接続）が一致しました。`);
+        safeSetText('res-auth-method', "JWT (RS256) 標準準拠");
 
         // シミュレーション用のちょっとしたウエイト
         await new Promise(resolve => setTimeout(resolve, 1500));
       }
 
       // ローディング終了、結果画面のレンダリング
-      if (statusLoading) statusLoading.classList.add('hidden');
+      safeAddClass('status-loading', 'hidden');
       
-      // 取得したキー情報を流し込む (Null安全ガード句適用！)
+      // 取得したキー情報を流し込む
       if (loadedJson) {
-        const resProjId = document.getElementById('res-project-id');
-        const resClientEmail = document.getElementById('res-client-email');
-        if (resProjId) resProjId.innerText = loadedJson.project_id || "";
-        if (resClientEmail) resClientEmail.innerText = loadedJson.client_email || "";
+        safeSetText('res-project-id', loadedJson.project_id || "");
+        safeSetText('res-client-email', loadedJson.client_email || "");
       }
-      
-      const resPropId = document.getElementById('res-prop-id');
-      if (resPropId) resPropId.innerText = propId;
+      safeSetText('res-prop-id', propId);
 
-      if (testResultPanel) testResultPanel.classList.remove('hidden');
+      safeRemoveClass('test-result-panel', 'hidden');
       
       if (btn) btn.disabled = false;
       if (btnText) btnText.innerText = "自動データ取得をテスト！";
       
       // 以前の生成データは一旦隠しておく
-      const aiReportCard = document.getElementById('ai-report-card');
+      safeAddClass('ai-report-card', 'hidden');
+      
       const genBtn = document.getElementById('generate-ai-report-btn');
-      if (aiReportCard) aiReportCard.classList.add('hidden');
-      if (genBtn && genBtn.parentElement) genBtn.parentElement.classList.remove('hidden');
+      if (genBtn && genBtn.parentElement) {
+        genBtn.parentElement.classList.remove('hidden');
+      }
 
       initIcons(); // 新しい要素のアイコンをアクティブ化
     }
@@ -1102,11 +1053,9 @@
     // 🤖 AIレポートの自動分析（Gemini連携・プロコンサルビジュアル極み構成！）
     function triggerAiAnalysis() {
       const gBtn = document.getElementById('generate-ai-report-btn');
-      const clientNameInput = document.getElementById('client-name-input');
-      const consultantNameInput = document.getElementById('consultant-name-input');
-      const clientName = (clientNameInput ? clientNameInput.value.trim() : "") || "みっけカタログ LP";
-      const consultantName = (consultantNameInput ? consultantNameInput.value.trim() : "") || "松本 治 (Smile Plus Consulting)";
-
+      const clientName = safeGetValue('client-name-input', "みっけカタログ LP");
+      const consultantName = safeGetValue('consultant-name-input', "松本 治 (Smile Plus Consulting)");
+      
       if (gBtn) {
         gBtn.disabled = true;
         gBtn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>Gemini 2.5 Flash でビジュアル分析報告書を作成中...</span>`;
@@ -1127,7 +1076,7 @@
             `;
           }
         } else {
-          // デモまたはWorkers未同期時の高精度コンサルシミュレーション
+          // デモまたはWorkers未同期時の高精度コンサルシミュレーション (Null安全値取得に全面書き換え！)
           const metricCv = document.getElementById('metric-cv');
           const metricSource = document.getElementById('metric-source');
           const metricMobile = document.getElementById('metric-mobile');
@@ -1201,6 +1150,8 @@
                   </div>
                   <div class="h-[120px] w-full">
                     <canvas id="cvTrendChart"></canvas>
+                    <!-- 🌟 超防弾用フォールバックコンテナ（Chart.js未ロード時に作動） -->
+                    <div id="cvTrendChartFallback" class="hidden h-full w-full"></div>
                   </div>
                 </div>
 
@@ -1212,7 +1163,7 @@
                 </ul>
               </div>
 
-              <!-- 2. Web改善案 -->
+              <!-- 2. Web改善案（★優先度・難易度の可視化バッジを追加！） -->
               <div>
                 <h4 class="text-[#223670] font-black mb-3.5 flex items-center gap-1.5 text-[13px] border-l-4 border-[#223670] pl-2">
                   <i data-lucide="trending-up" class="w-4 h-4 text-emerald-500"></i>
@@ -1365,8 +1316,14 @@
 
         // UI切り替え
         const aiReportCard = document.getElementById('ai-report-card');
-        if (aiReportCard) aiReportCard.classList.remove('hidden');
-        if (gBtn && gBtn.parentElement) gBtn.parentElement.classList.add('hidden'); // ボタンを隠す
+        if (aiReportCard) {
+          aiReportCard.classList.remove('hidden');
+          aiReportCard.scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        if (gBtn && gBtn.parentElement) {
+          gBtn.parentElement.classList.add('hidden'); // ボタンを隠す
+        }
         
         // ボタンの復元
         if (gBtn) {
@@ -1374,94 +1331,121 @@
           gBtn.innerHTML = `<i data-lucide="sparkles" class="w-4 h-4"></i><span>AI自動分析レポートを生成する！ (5秒で完成)</span>`;
         }
         initIcons();
-
-        // 表示されたレポート領域までスムーズにスクロール
-        if (aiReportCard) aiReportCard.scrollIntoView({ behavior: 'smooth' });
       }, 1500);
     }
 
     // 📈 Wave折れ線グラフ（コンバージョン発生トレンド）を描画するヘルパー関数
     function renderCvTrendChart() {
       const ctx = document.getElementById('cvTrendChart');
+      const fallbackEl = document.getElementById('cvTrendChartFallback');
       if (!ctx) return;
 
-      // シミュレーション用の滑らかな波形データ (直近30日のCV発生状況イメージ)
-      const labels = Array.from({length: 15}, (_, i) => `${i*2 + 2}日前`);
-      const dataValues = [2, 4, 3, 5, 8, 4, 6, 9, 5, 7, 8, 6, 8, 7, 9];
+      // Chart.jsが無事読み込まれている場合のみグラフ処理をする
+      if (typeof Chart !== 'undefined') {
+        if (fallbackEl) fallbackEl.classList.add('hidden');
+        ctx.classList.remove('hidden');
 
-      try {
-        new Chart(ctx, {
-          type: 'line',
-          data: {
-            labels: labels.reverse(),
-            datasets: [{
-              label: 'コンバージョン発生数',
-              data: dataValues,
-              borderColor: '#00a3e0',
-              borderWidth: 3,
-              pointBackgroundColor: '#223670',
-              pointRadius: 4,
-              tension: 0.4, // 滑らかな曲線（スプライン）
-              fill: true,
-              // 綺麗なグラデーションで塗りつぶし
-              backgroundColor: function(context) {
-                const chart = context.chart;
-                const {ctx, chartArea} = chart;
-                if (!chartArea) return null;
-                const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-                gradient.addColorStop(0, 'rgba(0, 163, 224, 0.3)');
-                gradient.addColorStop(1, 'rgba(34, 54, 112, 0.0)');
-                return gradient;
-              }
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: {
-                display: false
-              }
+        // シミュレーション用の滑らかな波形データ (直近30日のCV発生状況イメージ)
+        const labels = Array.from({length: 15}, (_, i) => `${i*2 + 2}日前`);
+        const dataValues = [2, 4, 3, 5, 8, 4, 6, 9, 5, 7, 8, 6, 8, 7, 9];
+
+        try {
+          new Chart(ctx, {
+            type: 'line',
+            data: {
+              labels: labels.reverse(),
+              datasets: [{
+                label: 'コンバージョン発生数',
+                data: dataValues,
+                borderColor: '#00a3e0',
+                borderWidth: 3,
+                pointBackgroundColor: '#223670',
+                pointRadius: 4,
+                tension: 0.4, // 滑らかな曲線（スプライン）
+                fill: true,
+                // 綺麗なグラデーションで塗りつぶし
+                backgroundColor: function(context) {
+                  const chart = context.chart;
+                  const {ctx, chartArea} = chart;
+                  if (!chartArea) return null;
+                  const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+                  gradient.addColorStop(0, 'rgba(0, 163, 224, 0.3)');
+                  gradient.addColorStop(1, 'rgba(34, 54, 112, 0.0)');
+                  return gradient;
+                }
+              }]
             },
-            scales: {
-              x: {
-                grid: {
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: {
                   display: false
-                },
-                ticks: {
-                  font: {
-                    size: 8,
-                    weight: 'bold'
-                  },
-                  color: '#94a3b8'
                 }
               },
-              y: {
-                beginAtZero: true,
-                grid: {
-                  color: '#f1f5f9'
-                },
-                ticks: {
-                  font: {
-                    size: 8,
-                    weight: 'bold'
+              scales: {
+                x: {
+                  grid: {
+                    display: false
                   },
-                  color: '#94a3b8',
-                  stepSize: 2
+                  ticks: {
+                    font: {
+                      size: 8,
+                      weight: 'bold'
+                    },
+                    color: '#94a3b8'
+                  }
+                },
+                y: {
+                  beginAtZero: true,
+                  grid: {
+                    color: '#f1f5f9'
+                  },
+                  ticks: {
+                    font: {
+                      size: 8,
+                      weight: 'bold'
+                    },
+                    color: '#94a3b8',
+                    stepSize: 2
+                  }
                 }
               }
             }
-          }
-        });
-      } catch (e) {
-        console.error("Failed to render trend chart: ", e);
+          });
+        } catch (e) {
+          console.error("折れ線トレンドグラフ描画エラー: ", e);
+          showCvTrendFallback();
+        }
+      } else {
+        // Chart.jsがロードされていない場合は、超美しいリストカードで代替表示！
+        showCvTrendFallback();
+      }
+    }
+
+    // 📈 折れ線トレンドグラフ未ロード時の美しいフォールバックデザイン
+    function showCvTrendFallback() {
+      const ctx = document.getElementById('cvTrendChart');
+      const fallbackEl = document.getElementById('cvTrendChartFallback');
+      if (ctx) ctx.classList.add('hidden');
+      if (fallbackEl) {
+        fallbackEl.classList.remove('hidden');
+        fallbackEl.innerHTML = `
+          <div class="flex items-center justify-around h-full py-2 bg-slate-50/50 rounded-xl">
+            <div class="flex flex-col items-center"><span class="text-[9px] text-slate-400">14日前</span><span class="text-xs font-black text-[#223670]">2件</span></div>
+            <div class="flex flex-col items-center"><span class="text-[9px] text-slate-400">10日前</span><span class="text-xs font-black text-[#223670]">5件</span></div>
+            <div class="flex flex-col items-center"><span class="text-[9px] text-slate-400">6日前</span><span class="text-xs font-black text-[#223670]">9件</span></div>
+            <div class="flex flex-col items-center"><span class="text-[9px] text-slate-400">2日前</span><span class="text-xs font-black text-[#223670]">7件</span></div>
+            <div class="flex flex-col items-center bg-emerald-50 px-2.5 py-1 rounded-xl"><span class="text-[9px] text-emerald-600">本日</span><span class="text-sm font-black text-emerald-700">9件</span></div>
+          </div>
+        `;
       }
     }
 
     // 📋 強力なレポート文面のコピー機能 (iOS・特殊ブラウザ完全対応 + 💡ボタン確認表示アニメーション搭載)
     function copyReportText() {
-      const reportContentText = document.getElementById('report-content-text');
-      const text = reportContentText ? reportContentText.innerText : "";
+      const reportContentEl = document.getElementById('report-content-text');
+      const text = reportContentEl ? reportContentEl.innerText : "";
       
       if (!text || text.trim() === "") {
         showNotification("コピーするレポート文面がありません。先にレポートを生成してください。", false);
@@ -1472,7 +1456,7 @@
       const tempInput = document.createElement("textarea");
       tempInput.value = text;
       
-      // iOSや主要ブラウザでのフォー具合と、不必要な画面スクロール崩れを防ぐためのガードスタイル設定
+      // iOSや主要ブラウザでのフォーカス不具合と、不必要な画面スクロール崩れを防ぐためのガードスタイル設定
       tempInput.style.position = 'fixed';
       tempInput.style.top = '0';
       tempInput.style.left = '-9999px';
