@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>自動分析みっけ V4.1 (ビジュアル極み版)</title>
+  <title>自動分析みっけ V4.1 (ビジュアル極み・エラー修正版)</title>
   
   <!-- favicon（ファビコン）の表示設定 -->
   <link rel="icon" href="https://spc-jp.github.io/web-kaizen-mikke/favicon.png" type="image/png">
@@ -266,7 +266,7 @@
             <span class="bg-[#223670]/10 text-[#223670] text-[10px] px-1.5 py-0.5 rounded-md font-bold">③</span>
             GA4 プロパティIDを入力
           </label>
-          <input type="text" id="prop-id-input" class="w-full p-3.5 clay-input text-xs font-bold text-[#223670] tracking-wider" placeholder="例: 542302994" oninput="saveSettingsToStorage()" />
+          <input type="text" id="prop-id-input" class="w-full p-3.5 clay-input text-xs font-bold text-[#223670]" placeholder="例: 542302994" oninput="saveSettingsToStorage()" />
           <p class="text-[10px] text-slate-400 font-semibold mt-1 leading-relaxed pl-1">
             ※Googleアナリティクスの管理 ＞ プロパティの詳細 にある9桁から10桁の数字です。
           </p>
@@ -332,7 +332,7 @@
   </div>
 
   <!-- ヘッダー -->
-  <header class="w-full max-w-5xl mb-8 flex flex-col md:flex-row items-center justify-between gap-4 no-print">
+  <header class="w-full max-w-4xl mb-8 flex flex-col md:flex-row items-center justify-between gap-4 no-print">
     <div class="flex items-center gap-3">
       <div class="bg-gradient-to-br from-[#223670] to-[#00a3e0] p-3 rounded-2xl shadow-md text-white flex items-center justify-center">
         <i data-lucide="gauge" class="w-6 h-6"></i>
@@ -604,35 +604,39 @@
         deviceChartInstance.destroy();
       }
 
-      deviceChartInstance = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-          labels: ['スマホ', 'PC'],
-          datasets: [{
-            data: [mobile, desktop],
-            backgroundColor: ['#00a3e0', '#223670'],
-            borderWidth: 0,
-            hoverOffset: 4
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              display: false // スッキリさせるため凡例は非表示
-            },
-            tooltip: {
-              callbacks: {
-                label: function(context) {
-                  return ` ${context.label}: ${context.raw}%`;
+      try {
+        deviceChartInstance = new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+            labels: ['スマホ', 'PC'],
+            datasets: [{
+              data: [mobile, desktop],
+              backgroundColor: ['#00a3e0', '#223670'],
+              borderWidth: 0,
+              hoverOffset: 4
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false // スッキリさせるため凡例は非表示
+              },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    return ` ${context.label}: ${context.raw}%`;
+                  }
                 }
               }
-            }
-          },
-          cutout: '65%'
-        }
-      });
+            },
+            cutout: '65%'
+          }
+        });
+      } catch (e) {
+        console.error("Chart creation failed: ", e);
+      }
     }
 
     // 読み込みが完了してから初期化
@@ -665,14 +669,14 @@
     // 使い方モーダルの表示・非表示トグル
     function toggleUsageModal() {
       const modal = document.getElementById('usage-modal');
-      modal.classList.toggle('hidden');
+      if (modal) modal.classList.toggle('hidden');
       initIcons();
     }
 
     // ⚙️ 環境設定モーダルの表示・非表示トグル
     function toggleSettingsModal() {
       const modal = document.getElementById('settings-modal');
-      modal.classList.toggle('hidden');
+      if (modal) modal.classList.toggle('hidden');
       updateMainSummary(); // 閉じるときにメイン画面の状況を即座に更新！
       initIcons();
     }
@@ -694,10 +698,15 @@
 
     // ローカルストレージに設定を保存する
     function saveSettingsToStorage() {
-      const clientName = document.getElementById('client-name-input').value.trim();
-      const consultantName = document.getElementById('consultant-name-input').value.trim();
-      const propId = document.getElementById('prop-id-input').value.trim();
-      const workersUrl = document.getElementById('workers-url-input').value.trim();
+      const clientNameInput = document.getElementById('client-name-input');
+      const consultantNameInput = document.getElementById('consultant-name-input');
+      const propIdInput = document.getElementById('prop-id-input');
+      const workersUrlInput = document.getElementById('workers-url-input');
+
+      const clientName = clientNameInput ? clientNameInput.value.trim() : "";
+      const consultantName = consultantNameInput ? consultantNameInput.value.trim() : "";
+      const propId = propIdInput ? propIdInput.value.trim() : "";
+      const workersUrl = workersUrlInput ? workersUrlInput.value.trim() : "";
 
       localStorage.setItem('mikke_client_name', clientName);
       localStorage.setItem('mikke_consultant_name', consultantName);
@@ -715,10 +724,15 @@
       const workersUrl = localStorage.getItem('mikke_workers_url') || "";
       const statusViewChecked = localStorage.getItem('mikke_show_status') !== "false"; // デフォルトは表示
 
-      document.getElementById('client-name-input').value = clientName;
-      document.getElementById('consultant-name-input').value = consultantName;
-      document.getElementById('prop-id-input').value = propId;
-      document.getElementById('workers-url-input').value = workersUrl;
+      const clientNameInput = document.getElementById('client-name-input');
+      const consultantNameInput = document.getElementById('consultant-name-input');
+      const propIdInput = document.getElementById('prop-id-input');
+      const workersUrlInput = document.getElementById('workers-url-input');
+
+      if (clientNameInput) clientNameInput.value = clientName;
+      if (consultantNameInput) consultantNameInput.value = consultantName;
+      if (propIdInput) propIdInput.value = propId;
+      if (workersUrlInput) workersUrlInput.value = workersUrl;
       
       const toggleSwitch = document.getElementById('toggle-status-view');
       if (toggleSwitch) {
@@ -729,24 +743,34 @@
 
     // メイン画面の「ステータスサマリー」を最新の入力値に書き換える関数
     function updateMainSummary() {
-      const clientName = document.getElementById('client-name-input').value.trim() || "みっけカタログ LP";
-      const consultantName = document.getElementById('consultant-name-input').value.trim() || "松本 治 (Smile Plus Consulting)";
-      const propId = document.getElementById('prop-id-input').value.trim() || "542302994";
-      const workersUrl = document.getElementById('workers-url-input').value.trim();
+      const clientNameInput = document.getElementById('client-name-input');
+      const consultantNameInput = document.getElementById('consultant-name-input');
+      const propIdInput = document.getElementById('prop-id-input');
+      const workersUrlInput = document.getElementById('workers-url-input');
 
-      document.getElementById('status-client-name').innerText = clientName;
-      document.getElementById('status-prop-id').innerText = propId;
+      const clientName = (clientNameInput ? clientNameInput.value.trim() : "") || "みっけカタログ LP";
+      const consultantName = (consultantNameInput ? consultantNameInput.value.trim() : "") || "松本 治 (Smile Plus Consulting)";
+      const propId = (propIdInput ? propIdInput.value.trim() : "") || "542302994";
+      const workersUrl = workersUrlInput ? workersUrlInput.value.trim() : "";
+
+      const statusClientName = document.getElementById('status-client-name');
+      const statusPropId = document.getElementById('status-prop-id');
+      if (statusClientName) statusClientName.innerText = clientName;
+      if (statusPropId) statusPropId.innerText = propId;
       
       // レポートヘッダーの報告者署名を更新
       const repCons = document.getElementById('report-consultant-span');
       if (repCons) repCons.innerText = consultantName;
 
-      if (workersUrl) {
-        document.getElementById('status-mode').innerText = "本番 Workers 同期中";
-        document.getElementById('status-mode').className = "text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md text-[10px]";
-      } else {
-        document.getElementById('status-mode').innerText = "デモシミュレーション";
-        document.getElementById('status-mode').className = "text-[#00a3e0] bg-[#00a3e0]/10 px-2 py-0.5 rounded-md text-[10px]";
+      const statusMode = document.getElementById('status-mode');
+      if (statusMode) {
+        if (workersUrl) {
+          statusMode.innerText = "本番 Workers 同期中";
+          statusMode.className = "text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md text-[10px]";
+        } else {
+          statusMode.innerText = "デモシミュレーション";
+          statusMode.className = "text-[#00a3e0] bg-[#00a3e0]/10 px-2 py-0.5 rounded-md text-[10px]";
+        }
       }
 
       // クライアント名の表示要素を全スレッドで一斉書き換え
@@ -758,10 +782,15 @@
     // 💡 デモデータの再ロード機能
     function loadDemoDataset() {
       // 1. デモ設定値を各インプットに適用
-      document.getElementById('client-name-input').value = "みっけカタログ LP";
-      document.getElementById('consultant-name-input').value = "松本 治 (Smile Plus Consulting)";
-      document.getElementById('prop-id-input').value = "542302994";
-      document.getElementById('workers-url-input').value = ""; // デモモードへ強制リセット
+      const clientNameInput = document.getElementById('client-name-input');
+      const consultantNameInput = document.getElementById('consultant-name-input');
+      const propIdInput = document.getElementById('prop-id-input');
+      const workersUrlInput = document.getElementById('workers-url-input');
+
+      if (clientNameInput) clientNameInput.value = "みっけカタログ LP";
+      if (consultantNameInput) consultantNameInput.value = "松本 治 (Smile Plus Consulting)";
+      if (propIdInput) propIdInput.value = "542302994";
+      if (workersUrlInput) workersUrlInput.value = ""; // デモモードへ強制リセット
       
       // 2. 暗号デモ鍵オブジェクトをセット
       loadedJson = {
@@ -769,9 +798,13 @@
         client_email: "web-kaizen-mikke@virtual-cubist-498302-v3.iam.gserviceaccount.com"
       };
       
-      document.getElementById('file-name-text').innerText = "web-kaizen-mikke-key.json (自動デモ)";
-      document.getElementById('status-key-file').innerText = "web-kaizen-mikke-key.json";
-      document.getElementById('status-key-file').title = "デモ用鍵情報ロード済";
+      const fileNameText = document.getElementById('file-name-text');
+      const statusKeyFile = document.getElementById('status-key-file');
+      if (fileNameText) fileNameText.innerText = "web-kaizen-mikke-key.json (自動デモ)";
+      if (statusKeyFile) {
+        statusKeyFile.innerText = "web-kaizen-mikke-key.json";
+        statusKeyFile.title = "デモ用鍵情報ロード済";
+      }
 
       // 3. ストレージとメインサマリーを同期
       saveSettingsToStorage();
@@ -787,7 +820,7 @@
       // 5. デモチャートに再更新
       updateDeviceChart(76.8);
 
-      // 6. 設定画面を閉じて、ユーザーに優しく通知
+      // 6. 設定画面を閉じる
       toggleSettingsModal();
       showNotification("初期デモ用データセットをロードしました。");
     }
@@ -795,18 +828,27 @@
     // 💡 データの完全クリア（初期化）機能
     function clearDemoDataset() {
       // 1. インプットフィールドを完全に空にする
-      document.getElementById('client-name-input').value = "";
-      document.getElementById('consultant-name-input').value = "";
-      document.getElementById('prop-id-input').value = "";
-      document.getElementById('workers-url-input').value = "";
+      const clientNameInput = document.getElementById('client-name-input');
+      const consultantNameInput = document.getElementById('consultant-name-input');
+      const propIdInput = document.getElementById('prop-id-input');
+      const workersUrlInput = document.getElementById('workers-url-input');
+
+      if (clientNameInput) clientNameInput.value = "";
+      if (consultantNameInput) consultantNameInput.value = "";
+      if (propIdInput) propIdInput.value = "";
+      if (workersUrlInput) workersUrlInput.value = "";
       
       // 2. 鍵とキャッシュの破棄
       loadedJson = null;
       fetchedDataCache = null;
       
-      document.getElementById('file-name-text').innerText = "ファイルを選択してください (.json)";
-      document.getElementById('status-key-file').innerText = "未選択";
-      document.getElementById('status-key-file').title = "鍵ファイルがセットされていません";
+      const fileNameText = document.getElementById('file-name-text');
+      const statusKeyFile = document.getElementById('status-key-file');
+      if (fileNameText) fileNameText.innerText = "ファイルを選択してください (.json)";
+      if (statusKeyFile) {
+        statusKeyFile.innerText = "未選択";
+        statusKeyFile.title = "鍵ファイルがセットされていません";
+      }
 
       // 3. ストレージのデータを消去
       localStorage.removeItem('mikke_client_name');
@@ -818,13 +860,15 @@
       updateMainSummary();
       
       // 5. テスト結果を引っ込めて初期ウェルカム表示へ戻す
-      document.getElementById('test-result-panel').classList.add('hidden');
-      document.getElementById('status-untested').classList.remove('hidden');
+      const testResultPanel = document.getElementById('test-result-panel');
+      const statusUntested = document.getElementById('status-untested');
+      if (testResultPanel) testResultPanel.classList.add('hidden');
+      if (statusUntested) statusUntested.classList.remove('hidden');
 
       // 6. グラフもゼロクリア
       updateDeviceChart(50.0);
 
-      // 7. 設定画面を閉じて、ユーザーに優しく通知
+      // 7. 設定画面を閉じる
       toggleSettingsModal();
       showNotification("表示データとストレージ環境設定を完全に初期化しました！");
     }
@@ -868,10 +912,16 @@
       const file = e.target.files[0];
       if (!file) return;
 
-      document.getElementById('file-name-text').innerText = file.name;
-      document.getElementById('status-key-file').innerText = file.name;
-      document.getElementById('status-key-file').title = "秘密鍵JSONロード済";
-      document.getElementById('inline-notification').classList.add('hidden'); // 通知を非表示
+      const fileNameText = document.getElementById('file-name-text');
+      const statusKeyFile = document.getElementById('status-key-file');
+      if (fileNameText) fileNameText.innerText = file.name;
+      if (statusKeyFile) {
+        statusKeyFile.innerText = file.name;
+        statusKeyFile.title = "秘密鍵JSONロード済";
+      }
+      
+      const inlineNotification = document.getElementById('inline-notification');
+      if (inlineNotification) inlineNotification.classList.add('hidden'); // 通知を非表示
 
       const reader = new FileReader();
       reader.onload = function(evt) {
@@ -885,13 +935,13 @@
           } else {
             showError("選択されたファイルは、Google Cloudから発行された正しい秘密鍵（JSON）ではない可能性があります。");
             loadedJson = null;
-            document.getElementById('file-name-text').innerText = "形式が違います";
+            if (fileNameText) fileNameText.innerText = "形式が違います";
           }
         } catch (err) {
           showError("JSONファイルの解析に失敗しました。正しいファイルか確認してください。");
           loadedJson = null;
-          document.getElementById('file-name-text').innerText = "エラー：読み込めません";
-          document.getElementById('status-key-file').innerText = "読み込みエラー";
+          if (fileNameText) fileNameText.innerText = "エラー：読み込めません";
+          if (statusKeyFile) statusKeyFile.innerText = "読み込みエラー";
         }
       };
       reader.readAsText(file);
@@ -902,11 +952,15 @@
       // 実行前に最新の値を格納・同期
       updateMainSummary();
 
-      const propId = document.getElementById('prop-id-input').value.trim();
-      const workersUrl = document.getElementById('workers-url-input').value.trim();
-      const clientName = document.getElementById('client-name-input').value.trim() || "みっけカタログ LP";
+      const propIdInput = document.getElementById('prop-id-input');
+      const workersUrlInput = document.getElementById('workers-url-input');
+      const clientNameInput = document.getElementById('client-name-input');
       const btn = document.getElementById('test-connection-btn');
       const btnText = document.getElementById('btn-text');
+
+      const propId = propIdInput ? propIdInput.value.trim() : "";
+      const workersUrl = workersUrlInput ? workersUrlInput.value.trim() : "";
+      const clientName = (clientNameInput ? clientNameInput.value.trim() : "") || "みっけカタログ LP";
 
       if (!propId) {
         showNotification("「設定⚙️」画面を開いて、プロパティIDを入力してからテストしてください。", false);
@@ -915,17 +969,23 @@
       }
 
       // UIの状態遷移
-      document.getElementById('status-untested').classList.add('hidden');
-      document.getElementById('test-result-panel').classList.add('hidden');
-      document.getElementById('status-loading').classList.remove('hidden');
+      const statusUntested = document.getElementById('status-untested');
+      const testResultPanel = document.getElementById('test-result-panel');
+      const statusLoading = document.getElementById('status-loading');
 
-      btn.disabled = true;
-      btnText.innerText = "接続認証を実行中...";
+      if (statusUntested) statusUntested.classList.add('hidden');
+      if (testResultPanel) testResultPanel.classList.add('hidden');
+      if (statusLoading) statusLoading.classList.remove('hidden');
+
+      if (btn) btn.disabled = true;
+      if (btnText) btnText.innerText = "接続認証を実行中...";
 
       // 🚀 Workers URLがセットされている場合は「本物のAPI通信」を行う
       if (workersUrl) {
-        document.getElementById('loading-title').innerText = "本番 Cloudflare Workers に接続中...";
-        document.getElementById('loading-subtitle').innerText = "GA4のリアルタイム実機データとGemini AI分析結果を直に取得しています。";
+        const loadingTitle = document.getElementById('loading-title');
+        const loadingSubtitle = document.getElementById('loading-subtitle');
+        if (loadingTitle) loadingTitle.innerText = "本番 Cloudflare Workers に接続中...";
+        if (loadingSubtitle) loadingSubtitle.innerText = "GA4のリアルタイム実機データとGemini AI分析結果を直に取得しています。";
 
         try {
           const response = await fetch(workersUrl, {
@@ -947,68 +1007,94 @@
           fetchedDataCache = resultData; // 取得データを保持
 
           // UI表示を本物のデータに書き換える
-          document.getElementById('metric-cv').innerText = resultData.cv || 0;
-          document.getElementById('metric-source').innerText = resultData.topSource || "なし";
-          document.getElementById('metric-mobile').innerText = resultData.mobileRatio || 0.0;
-          document.getElementById('metric-engagement').innerText = resultData.engagementRate || 0.0;
+          const metricCv = document.getElementById('metric-cv');
+          const metricSource = document.getElementById('metric-source');
+          const metricMobile = document.getElementById('metric-mobile');
+          const metricEngagement = document.getElementById('metric-engagement');
+
+          if (metricCv) metricCv.innerText = resultData.cv || 0;
+          if (metricSource) metricSource.innerText = resultData.topSource || "なし";
+          if (metricMobile) metricMobile.innerText = resultData.mobileRatio || 0.0;
+          if (metricEngagement) metricEngagement.innerText = resultData.engagementRate || 0.0;
 
           // 本物の数値に基づいて円グラフをアニメーション更新！
           updateDeviceChart(resultData.mobileRatio || 76.8);
 
           // 実機連携ステータスの書き換え
-          document.getElementById('res-status-title').innerText = "✓ 本番中継 Workers & GA4 連携に完全成功！";
-          document.getElementById('res-status-subtitle').innerText = `Cloudflare Workers上の安全な鍵認証をパスし、${clientName} の実機レポート生成に成功しました。`;
-          document.getElementById('res-auth-method').innerText = "Workers中継 JWT (RS256) 本番同期";
+          const resStatusTitle = document.getElementById('res-status-title');
+          const resStatusSubtitle = document.getElementById('res-status-subtitle');
+          const resAuthMethod = document.getElementById('res-auth-method');
+
+          if (resStatusTitle) resStatusTitle.innerText = "✓ 本番中継 Workers & GA4 連携に完全成功！";
+          if (resStatusSubtitle) resStatusSubtitle.innerText = `Cloudflare Workers上の安全な鍵認証をパスし、${clientName} の実機レポート生成に成功しました。`;
+          if (resAuthMethod) resAuthMethod.innerText = "Workers中継 JWT (RS256) 本番同期";
 
         } catch (err) {
           // 本番接続でエラーになった場合はエラーを親切に表示
-          document.getElementById('status-loading').classList.add('hidden');
+          if (statusLoading) statusLoading.classList.add('hidden');
           showError(`Workers接続エラー: ${err.message}。WorkersのURL、CORS設定、または環境変数をご確認ください。`);
-          btn.disabled = false;
-          btnText.innerText = "自動データ取得をテスト！";
+          if (btn) btn.disabled = false;
+          if (btnText) btnText.innerText = "自動データ取得をテスト！";
           return;
         }
       } else {
         // Workers URLが無い場合はいつもの高精度シミュレーションを実行
-        document.getElementById('loading-title').innerText = "Google API 経由で実機データを接続テスト中...測定結果を受信しています。";
-        document.getElementById('loading-subtitle').innerText = "暗号キー（JWT署名）を解析し、GA4との安全な通信経路を構築しています。";
+        const loadingTitle = document.getElementById('loading-title');
+        const loadingSubtitle = document.getElementById('loading-subtitle');
+        if (loadingTitle) loadingTitle.innerText = "Google API 経由で実機データを接続テスト中...測定結果を受信しています。";
+        if (loadingSubtitle) loadingSubtitle.innerText = "暗号キー（JWT署名）を解析し、GA4との安全な通信経路を構築しています。";
         fetchedDataCache = null; // デモモード
 
         // 標準数値にリセット
-        document.getElementById('metric-cv').innerText = "84";
-        document.getElementById('metric-source').innerText = "Organic Search";
-        document.getElementById('metric-mobile').innerText = "76.8";
-        document.getElementById('metric-engagement').innerText = "68.2";
+        const metricCv = document.getElementById('metric-cv');
+        const metricSource = document.getElementById('metric-source');
+        const metricMobile = document.getElementById('metric-mobile');
+        const metricEngagement = document.getElementById('metric-engagement');
+
+        if (metricCv) metricCv.innerText = "84";
+        if (metricSource) metricSource.innerText = "Organic Search";
+        if (metricMobile) metricMobile.innerText = "76.8";
+        if (metricEngagement) metricEngagement.innerText = "68.2";
 
         // シミュレーション円グラフ描画
         updateDeviceChart(76.8);
 
-        document.getElementById('res-status-title').innerText = "✓ 実機連携に成功！データの通信経路が正常に確立されました";
-        document.getElementById('res-status-subtitle').innerText = `Google Cloud認証を突破し、${clientName} の閲覧権限（安全なSSL接続）が一致しました。`;
-        document.getElementById('res-auth-method').innerText = "JWT (RS256) 標準準拠";
+        const resStatusTitle = document.getElementById('res-status-title');
+        const resStatusSubtitle = document.getElementById('res-status-subtitle');
+        const resAuthMethod = document.getElementById('res-auth-method');
+
+        if (resStatusTitle) resStatusTitle.innerText = "✓ 実機連携に成功！データの通信経路が正常に確立されました";
+        if (resStatusSubtitle) resStatusSubtitle.innerText = `Google Cloud認証を突破し、${clientName} の閲覧権限（安全なSSL接続）が一致しました。`;
+        if (resAuthMethod) resAuthMethod.innerText = "JWT (RS256) 標準準拠";
 
         // シミュレーション用のちょっとしたウエイト
         await new Promise(resolve => setTimeout(resolve, 1500));
       }
 
       // ローディング終了、結果画面のレンダリング
-      document.getElementById('status-loading').classList.add('hidden');
+      if (statusLoading) statusLoading.classList.add('hidden');
       
-      // 取得したキー情報を流し込む
+      // 取得したキー情報を流し込む (Null安全ガード句適用！)
       if (loadedJson) {
-        document.getElementById('res-project-id').innerText = loadedJson.project_id;
-        document.getElementById('res-client-email').innerText = loadedJson.client_email;
+        const resProjId = document.getElementById('res-project-id');
+        const resClientEmail = document.getElementById('res-client-email');
+        if (resProjId) resProjId.innerText = loadedJson.project_id || "";
+        if (resClientEmail) resClientEmail.innerText = loadedJson.client_email || "";
       }
-      document.getElementById('res-prop-id').innerText = propId;
-
-      document.getElementById('test-result-panel').classList.remove('hidden');
       
-      btn.disabled = false;
-      btnText.innerText = "自動データ取得をテスト！";
+      const resPropId = document.getElementById('res-prop-id');
+      if (resPropId) resPropId.innerText = propId;
+
+      if (testResultPanel) testResultPanel.classList.remove('hidden');
+      
+      if (btn) btn.disabled = false;
+      if (btnText) btnText.innerText = "自動データ取得をテスト！";
       
       // 以前の生成データは一旦隠しておく
-      document.getElementById('ai-report-card').classList.add('hidden');
-      document.getElementById('generate-ai-report-btn').parentElement.classList.remove('hidden');
+      const aiReportCard = document.getElementById('ai-report-card');
+      const genBtn = document.getElementById('generate-ai-report-btn');
+      if (aiReportCard) aiReportCard.classList.add('hidden');
+      if (genBtn && genBtn.parentElement) genBtn.parentElement.classList.remove('hidden');
 
       initIcons(); // 新しい要素のアイコンをアクティブ化
     }
@@ -1016,10 +1102,15 @@
     // 🤖 AIレポートの自動分析（Gemini連携・プロコンサルビジュアル極み構成！）
     function triggerAiAnalysis() {
       const gBtn = document.getElementById('generate-ai-report-btn');
-      const clientName = document.getElementById('client-name-input').value.trim() || "みっけカタログ LP";
-      const consultantName = document.getElementById('consultant-name-input').value.trim() || "松本 治 (Smile Plus Consulting)";
-      gBtn.disabled = true;
-      gBtn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>Gemini 2.5 Flash でビジュアル分析報告書を作成中...</span>`;
+      const clientNameInput = document.getElementById('client-name-input');
+      const consultantNameInput = document.getElementById('consultant-name-input');
+      const clientName = (clientNameInput ? clientNameInput.value.trim() : "") || "みっけカタログ LP";
+      const consultantName = (consultantNameInput ? consultantNameInput.value.trim() : "") || "松本 治 (Smile Plus Consulting)";
+
+      if (gBtn) {
+        gBtn.disabled = true;
+        gBtn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>Gemini 2.5 Flash でビジュアル分析報告書を作成中...</span>`;
+      }
       initIcons();
 
       setTimeout(() => {
@@ -1028,252 +1119,264 @@
         // もし本物のWorkersから本物Geminiのレスポンスが届いている場合はそれを採用
         if (fetchedDataCache && fetchedDataCache.ai_analysis) {
           const formattedAnalysis = fetchedDataCache.ai_analysis.replace(/\n/g, '<br>');
-          reportArea.innerHTML = `
-            <div class="prose max-w-none text-slate-700 text-[11px] leading-relaxed font-bold">
-              ${formattedAnalysis}
-            </div>
-          `;
+          if (reportArea) {
+            reportArea.innerHTML = `
+              <div class="prose max-w-none text-slate-700 text-[11px] leading-relaxed font-bold">
+                ${formattedAnalysis}
+              </div>
+            `;
+          }
         } else {
           // デモまたはWorkers未同期時の高精度コンサルシミュレーション
-          const cvVal = document.getElementById('metric-cv').innerText;
-          const sourceVal = document.getElementById('metric-source').innerText;
-          const mobileVal = document.getElementById('metric-mobile').innerText;
-          const engagementVal = document.getElementById('metric-engagement').innerText;
+          const metricCv = document.getElementById('metric-cv');
+          const metricSource = document.getElementById('metric-source');
+          const metricMobile = document.getElementById('metric-mobile');
+          const metricEngagement = document.getElementById('metric-engagement');
 
-          reportArea.innerHTML = `
-            <!-- 🌟 お客さま驚き要素1：総合評価スピードメーター円形ゲージ (SVGアニメーション) -->
-            <div class="bg-gradient-to-br from-[#223670]/5 to-[#00a3e0]/5 p-5 rounded-2xl border border-[#223670]/10 flex flex-col md:flex-row items-center justify-between gap-6">
-              <div class="flex items-center gap-3">
-                <div class="bg-[#223670] text-white p-3 rounded-2xl flex items-center justify-center">
-                  <i data-lucide="award" class="w-6 h-6 text-[#d0a900] animate-bounce"></i>
-                </div>
-                <div>
-                  <h4 class="text-xs font-black text-[#223670]">今回のアクセス解析・接続テスト総合評価</h4>
-                  <p class="text-[10px] text-slate-400 font-bold mt-0.5">GA4の主要エンゲージメント指標をベースにしたプロフェッショナル偏差評価</p>
-                </div>
-              </div>
-              
-              <!-- 立体円形SVGゲージメーター -->
-              <div class="relative w-36 h-20 flex items-center justify-center overflow-hidden">
-                <svg class="absolute top-0 left-0 w-full h-full" viewBox="0 0 100 50">
-                  <!-- 背景半円 -->
-                  <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#e2e8f0" stroke-width="8" stroke-linecap="round"/>
-                  <!-- アクティブ値（シアン〜ネイビーのグラデーション） -->
-                  <path d="M 10 50 A 40 40 0 0 1 76.8 22" fill="none" stroke="url(#clayMeterGrad)" stroke-width="10" stroke-linecap="round" class="fade-in"/>
-                  
-                  <defs>
-                    <linearGradient id="clayMeterGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%" stop-color="#00a3e0" />
-                      <stop offset="100%" stop-color="#223670" />
-                    </linearGradient>
-                  </defs>
-                </svg>
-                <div class="absolute bottom-0 text-center">
-                  <span class="text-lg font-black text-[#223670] tracking-tight">優良 (A)</span>
-                  <div class="flex text-[#d0a900] -mt-1 scale-90 justify-center">
-                    <i data-lucide="star" class="w-3.5 h-3.5 fill-current"></i>
-                    <i data-lucide="star" class="w-3.5 h-3.5 fill-current"></i>
-                    <i data-lucide="star" class="w-3.5 h-3.5 fill-current"></i>
-                    <i data-lucide="star" class="w-3.5 h-3.5 fill-current"></i>
-                    <i data-lucide="star" class="w-3.5 h-3.5 text-slate-300"></i>
+          const cvVal = metricCv ? metricCv.innerText : "84";
+          const sourceVal = metricSource ? metricSource.innerText : "Organic Search";
+          const mobileVal = metricMobile ? metricMobile.innerText : "76.8";
+          const engagementVal = metricEngagement ? metricEngagement.innerText : "68.2";
+
+          if (reportArea) {
+            reportArea.innerHTML = `
+              <!-- 🌟 お客さま驚き要素1：総合評価スピードメーター円形ゲージ (SVGアニメーション) -->
+              <div class="bg-gradient-to-br from-[#223670]/5 to-[#00a3e0]/5 p-5 rounded-2xl border border-[#223670]/10 flex flex-col md:flex-row items-center justify-between gap-6">
+                <div class="flex items-center gap-3">
+                  <div class="bg-[#223670] text-white p-3 rounded-2xl flex items-center justify-center">
+                    <i data-lucide="award" class="w-6 h-6 text-[#d0a900] animate-bounce"></i>
+                  </div>
+                  <div>
+                    <h4 class="text-xs font-black text-[#223670]">今回のアクセス解析・接続テスト総合評価</h4>
+                    <p class="text-[10px] text-slate-400 font-bold mt-0.5">GA4の主要エンゲージメント指標をベースにしたプロフェッショナル偏差評価</p>
                   </div>
                 </div>
-              </div>
-            </div>
-
-            <!-- 1. 現状分析 -->
-            <div class="space-y-3">
-              <h4 class="text-[#223670] font-black flex items-center gap-1.5 text-[13px] border-l-4 border-[#223670] pl-2">
-                <i data-lucide="compass" class="w-4 h-4 text-[#00a3e0]"></i>
-                1. 現状の数値分析と強みの評価
-              </h4>
-              
-              <!-- 📈 お客さま驚き要素2：コンバージョン推移ミニ波形折れ線チャート！ -->
-              <div class="bg-slate-50/50 p-4 rounded-2xl border border-slate-100/50">
-                <div class="flex justify-between items-center mb-2">
-                  <span class="text-[10px] text-slate-400 font-bold flex items-center gap-1">
-                    <i data-lucide="trending-up" class="w-3.5 h-3.5 text-rose-500"></i>
-                    直近30日のコンバージョン（CV）発生トレンド波形（リアルタイム描画）
-                  </span>
-                  <span class="text-[10px] text-emerald-600 font-black flex items-center gap-0.5">
-                    <i data-lucide="activity" class="w-3.5 h-3.5"></i>
-                    CVトレンド安定
-                  </span>
-                </div>
-                <div class="h-[120px] w-full">
-                  <canvas id="cvTrendChart"></canvas>
-                </div>
-              </div>
-
-              <ul class="space-y-2 pl-4 text-[11px] text-slate-600 font-bold list-disc">
-                <li><strong>コンバージョン数（${cvVal}件）</strong>：直近30日間で非常に安定したリード獲得ができており、市場の確かなニーズを捉えています。</li>
-                <li><strong>トップ流入経路（【${sourceVal}】）</strong>：検索エンジン経由での確度の高い検討層が、サイトへスムーズに流入している理想的な状態です。</li>
-                <li><strong>スマホ利用率（${mobileVal}%）</strong>：アクセス数の圧倒的多数がモバイル。スマホ対応の最適化こそが最大の成果向上レバーです。</li>
-                <li><strong>エンゲージメント率（${engagementVal}%）</strong>：ユーザーがしっかりとコンテンツを読み進めており、構成自体への関心は非常に高い状態です。</li>
-              </ul>
-            </div>
-
-            <!-- 2. Web改善案（★優先度・難易度の可視化バッジを追加！） -->
-            <div>
-              <h4 class="text-[#223670] font-black mb-3.5 flex items-center gap-1.5 text-[13px] border-l-4 border-[#223670] pl-2">
-                <i data-lucide="trending-up" class="w-4 h-4 text-emerald-500"></i>
-                2. 今すぐ取り組むべき3つの「Web改善案」
-              </h4>
-              <ul class="space-y-4 pl-1 text-[11px] text-slate-600 font-bold">
-                <li class="bg-slate-50/50 p-3.5 rounded-2xl border border-slate-100 relative">
-                  <div class="flex flex-wrap items-center justify-between gap-2 mb-1.5">
-                    <span class="text-xs font-black text-[#223670]">① スマホ表示スピードの徹底最適化</span>
-                    <div class="flex items-center gap-1.5 text-[9px] font-bold">
-                      <span class="bg-red-50 text-red-700 px-2 py-0.5 rounded-md">優先度: 極高 (★★★★)</span>
-                      <span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md">難易度: 低 (★☆☆)</span>
-                    </div>
-                  </div>
-                  <p class="text-slate-500 text-[10px] leading-relaxed pl-1.5">
-                    モバイル率が${mobileVal}%と極めて高いため、読み込み速度の遅延が大きな離脱を生み出します。まずは最上部の余計なプログラムの削減や、画像の圧縮を行いましょう。
-                  </p>
-                </li>
-
-                <li class="bg-slate-50/50 p-3.5 rounded-2xl border border-slate-100 relative">
-                  <div class="flex flex-wrap items-center justify-between gap-2 mb-1.5">
-                    <span class="text-xs font-black text-[#223670]">② 主要キーワードに合わせたFV（ファーストビュー）の言葉調整</span>
-                    <div class="flex items-center gap-1.5 text-[9px] font-bold">
-                      <span class="bg-amber-50 text-amber-700 px-2 py-0.5 rounded-md">優先度: 高 (★★★)</span>
-                      <span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md">難易度: 中 (★★☆)</span>
-                    </div>
-                  </div>
-                  <p class="text-slate-500 text-[10px] leading-relaxed pl-1.5">
-                    最も強力な【${sourceVal}】からの検索流入を意識し、ユーザーが検索したキーワードと同じ言葉を、LPのファーストビューにキャッチコピーとしてそのまま反映させます。
-                  </p>
-                </li>
-
-                <li class="bg-slate-50/50 p-3.5 rounded-2xl border border-slate-100 relative">
-                  <div class="flex flex-wrap items-center justify-between gap-2 mb-1.5">
-                    <span class="text-xs font-black text-[#223670]">③ スクロールに追従するモバイル用コンバージョンボタンの常時表示</span>
-                    <div class="flex items-center gap-1.5 text-[9px] font-bold">
-                      <span class="bg-red-50 text-red-700 px-2 py-0.5 rounded-md">優先度: 極高 (★★★★)</span>
-                      <span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md">難易度: 極低 (☆☆☆)</span>
-                    </div>
-                  </div>
-                  <p class="text-slate-500 text-[10px] leading-relaxed pl-1.5">
-                    読み込みエンゲージメント（${engagementVal}%）が高いため、ユーザーがいつでも資料請求・問合せできるように、画面の最下部（フッター）に幅いっぱいの「カタログ請求ボタン」を常に追従（CSS固定）させます。
-                  </p>
-                </li>
-              </ul>
-            </div>
-
-            <!-- 3. 実践アドバイス手順 -->
-            <div>
-              <h4 class="text-[#223670] font-black mb-2.5 flex items-center gap-1.5 text-[13px] border-l-4 border-[#223670] pl-2">
-                <i data-lucide="help-circle" class="w-4 h-4 text-[#d0a900]"></i>
-                3. 具体的な改善方法のアドバイス (実践手順)
-              </h4>
-              <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200/50 space-y-3 text-[11px] text-slate-600 font-bold">
-                <div>
-                  <span class="text-[#00a3e0] font-black flex items-center gap-1">
-                    <i data-lucide="chevrons-right" class="w-4 h-4"></i>
-                    表示スピード改善のヒント
-                  </span>
-                  <p class="pl-5 text-[10px] text-slate-500 mt-0.5 leading-relaxed">無料ツール「Google PageSpeed Insights」で現在の数値を測定し、最上部の重たい画像ファイルを TinyPNG などの無料ツールで圧縮（できればWebP形式へ変換）して再設置します。</p>
-                </div>
-                <div>
-                  <span class="text-[#00a3e0] font-black flex items-center gap-1">
-                    <i data-lucide="chevrons-right" class="w-4 h-4"></i>
-                    ファーストビュー最適化のヒント
-                  </span>
-                  <p class="pl-5 text-[10px] text-slate-500 mt-0.5 leading-relaxed">流入元のキーワード予測（競合他社や検索窓でのサジェスト）を書き出し、ユーザーがLPを開いた瞬間に「私のことだ！」と一秒で共感できるキャッチコピーへ変更します。</p>
-                </div>
-                <div>
-                  <span class="text-[#00a3e0] font-black flex items-center gap-1">
-                    <i data-lucide="chevrons-right" class="w-4 h-4"></i>
-                    アクションボタンの追従手順
-                  </span>
-                  <p class="pl-5 text-[10px] text-slate-500 mt-0.5 leading-relaxed">スマホ画面の最下部に、スクロールしても常に指が届く位置に、幅いっぱいの「カタログ請求ボタン」を固定表示するレイアウトに調整します。</p>
-                </div>
-              </div>
-            </div>
-
-            <!-- 🌟 お客さま驚き要素3：ネイクストステップ (立体タイムラインロードマップ) -->
-            <div class="bg-[#223670]/5 p-5 rounded-2xl border border-dashed border-[#223670]/20">
-              <h4 class="text-[#223670] font-black mb-4 flex items-center gap-1.5 text-[12px]">
-                <i data-lucide="arrow-right-circle" class="w-4 h-4 text-[#00a3e0]"></i>
-                4. ネクストステップ（今後の並行伴走ロードマップ）
-              </h4>
-              <p class="text-[10px] text-slate-500 font-semibold mb-4 leading-relaxed">
-                上記の改善案をスムーズに実行に移し、最速度で成果（コンバージョン数）向上を達成するために、伴走報告者である <strong>${consultantName}</strong> が以下のステップでご支援を並行実施いたします。
-              </p>
-              
-              <!-- タイムラインのビジュアルデザイン -->
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-[10px] font-bold text-slate-600 relative">
                 
-                <!-- STEP 1 -->
-                <div class="bg-white p-4 rounded-2xl border border-slate-100 flex flex-col justify-between shadow-sm relative overflow-hidden">
-                  <div class="absolute top-0 left-0 w-1.5 h-full bg-[#00a3e0]"></div>
-                  <div>
-                    <span class="text-[#00a3e0] text-[11px] font-black flex items-center gap-1">
-                      <i data-lucide="calendar-range" class="w-4 h-4"></i>
-                      STEP 01 (1〜2週目)
-                    </span>
-                    <h5 class="text-xs font-black text-[#223670] mt-1.5">最優先：離脱防止の基盤改善</h5>
-                    <p class="text-slate-500 mt-1 leading-relaxed">表示速度の高速化、およびファーストビュー画像とテキストの最適化を実施し、今ある流入数（Organic Search）からの直帰を抑え込みます。</p>
+                <!-- 立体円形SVGゲージメーター -->
+                <div class="relative w-36 h-20 flex items-center justify-center overflow-hidden">
+                  <svg class="absolute top-0 left-0 w-full h-full" viewBox="0 0 100 50">
+                    <!-- 背景半円 -->
+                    <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#e2e8f0" stroke-width="8" stroke-linecap="round"/>
+                    <!-- アクティブ値（シアン〜ネイビーのグラデーション） -->
+                    <path d="M 10 50 A 40 40 0 0 1 76.8 22" fill="none" stroke="url(#clayMeterGrad)" stroke-width="10" stroke-linecap="round" class="fade-in"/>
+                    
+                    <defs>
+                      <linearGradient id="clayMeterGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stop-color="#00a3e0" />
+                        <stop offset="100%" stop-color="#223670" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                  <div class="absolute bottom-0 text-center">
+                    <span class="text-lg font-black text-[#223670] tracking-tight">優良 (A)</span>
+                    <div class="flex text-[#d0a900] -mt-1 scale-90 justify-center">
+                      <i data-lucide="star" class="w-3.5 h-3.5 fill-current"></i>
+                      <i data-lucide="star" class="w-3.5 h-3.5 fill-current"></i>
+                      <i data-lucide="star" class="w-3.5 h-3.5 fill-current"></i>
+                      <i data-lucide="star" class="w-3.5 h-3.5 fill-current"></i>
+                      <i data-lucide="star" class="w-3.5 h-3.5 text-slate-300"></i>
+                    </div>
                   </div>
                 </div>
-
-                <!-- STEP 2 -->
-                <div class="bg-white p-4 rounded-2xl border border-slate-100 flex flex-col justify-between shadow-sm relative overflow-hidden">
-                  <div class="absolute top-0 left-0 w-1.5 h-full bg-[#00a3e0]"></div>
-                  <div>
-                    <span class="text-[#00a3e0] text-[11px] font-black flex items-center gap-1">
-                      <i data-lucide="smartphone" class="w-4 h-4"></i>
-                      STEP 02 (3〜4週目)
-                    </span>
-                    <h5 class="text-xs font-black text-[#223670] mt-1.5">即効性：導線のスマホ最適化</h5>
-                    <p class="text-slate-500 mt-1 leading-relaxed">スマートフォン表示における「フローティングCVボタン（追従ボタン）」を設置し、ユーザーが「いつでもワンタップで問合せできる」設計へ改修します。</p>
-                  </div>
-                </div>
-
-                <!-- STEP 3 -->
-                <div class="bg-white p-4 rounded-2xl border border-slate-100 flex flex-col justify-between shadow-sm relative overflow-hidden">
-                  <div class="absolute top-0 left-0 w-1.5 h-full bg-[#223670]"></div>
-                  <div>
-                    <span class="text-[#223670] text-[11px] font-black flex items-center gap-1">
-                      <i data-lucide="line-chart" class="w-4 h-4"></i>
-                      STEP 03 (翌月以降)
-                    </span>
-                    <h5 class="text-xs font-black text-[#223670] mt-1.5">継続的：効果測定・改善検証</h5>
-                    <p class="text-slate-500 mt-1 leading-relaxed">GA4の数値を再度本システムで取得・確認し、改善前後のコンバージョン率（CVR）のビフォーアフター数値を測定・チューニングします。</p>
-                  </div>
-                </div>
-
               </div>
-            </div>
 
-            <!-- 伴走応援アドバイス -->
-            <div class="pt-3 border-t border-slate-100 font-bold">
-              <h4 class="text-[#223670] font-black mb-1 flex items-center gap-1 text-[13px]">
-                <i data-lucide="sparkles" class="w-4 h-4 text-[#d0a900]"></i>
-                松本様からの応援メッセージ
-              </h4>
-              <p class="text-slate-500 pl-5 text-[11px] leading-relaxed">
-                現在の基本数値は非常にポテンシャルの高い状態です！まずはスマホの「カタログ請求フロー」の最適化という具体的な一歩から実行し、さらなるリード獲得最大化を目指していきましょう！「考えるを、ひとりにしない。」の姿勢で、<strong>${clientName}</strong> の自動分析の成功を全力で応援いたします。
-              </p>
-            </div>
-          `;
+              <!-- 1. 現状分析 -->
+              <div class="space-y-3">
+                <h4 class="text-[#223670] font-black flex items-center gap-1.5 text-[13px] border-l-4 border-[#223670] pl-2">
+                  <i data-lucide="compass" class="w-4 h-4 text-[#00a3e0]"></i>
+                  1. 現状の数値分析と強みの評価
+                </h4>
+                
+                <!-- 📈 お客さま驚き要素2：コンバージョン推移ミニ波形折れ線チャート！ -->
+                <div class="bg-slate-50/50 p-4 rounded-2xl border border-slate-100/50">
+                  <div class="flex justify-between items-center mb-2">
+                    <span class="text-[10px] text-slate-400 font-bold flex items-center gap-1">
+                      <i data-lucide="trending-up" class="w-3.5 h-3.5 text-rose-500"></i>
+                      直近30日のコンバージョン（CV）発生トレンド波形（リアルタイム描画）
+                    </span>
+                    <span class="text-[10px] text-emerald-600 font-black flex items-center gap-0.5">
+                      <i data-lucide="activity" class="w-3.5 h-3.5"></i>
+                      CVトレンド安定
+                    </span>
+                  </div>
+                  <div class="h-[120px] w-full">
+                    <canvas id="cvTrendChart"></canvas>
+                  </div>
+                </div>
+
+                <ul class="space-y-2 pl-4 text-[11px] text-slate-600 font-bold list-disc">
+                  <li><strong>コンバージョン数（${cvVal}件）</strong>：直近30日間で非常に安定したリード獲得ができており、市場の確かなニーズを捉えています。</li>
+                  <li><strong>トップ流入経路（【${sourceVal}】）</strong>：検索エンジン経由での確度の高い検討層が、サイトへスムーズに流入している理想的な状態です。</li>
+                  <li><strong>スマホ利用率（${mobileVal}%）</strong>：アクセス数の圧倒的多数がモバイル。スマホ対応の最適化こそが最大の成果向上レバーです。</li>
+                  <li><strong>エンゲージメント率（${engagementVal}%）</strong>：ユーザーがしっかりとコンテンツを読み進めており、構成自体への関心は非常に高い状態です。</li>
+                </ul>
+              </div>
+
+              <!-- 2. Web改善案 -->
+              <div>
+                <h4 class="text-[#223670] font-black mb-3.5 flex items-center gap-1.5 text-[13px] border-l-4 border-[#223670] pl-2">
+                  <i data-lucide="trending-up" class="w-4 h-4 text-emerald-500"></i>
+                  2. 今すぐ取り組むべき3つの「Web改善案」
+                </h4>
+                <ul class="space-y-4 pl-1 text-[11px] text-slate-600 font-bold">
+                  <li class="bg-slate-50/50 p-3.5 rounded-2xl border border-slate-100 relative">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-1.5">
+                      <span class="text-xs font-black text-[#223670]">① スマホ表示スピードの徹底最適化</span>
+                      <div class="flex items-center gap-1.5 text-[9px] font-bold">
+                        <span class="bg-red-50 text-red-700 px-2 py-0.5 rounded-md">優先度: 極高 (★★★★)</span>
+                        <span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md">難易度: 低 (★☆☆)</span>
+                      </div>
+                    </div>
+                    <p class="text-slate-500 text-[10px] leading-relaxed pl-1.5">
+                      モバイル率が${mobileVal}%と極めて高いため、読み込み速度の遅延が大きな離脱を生み出します。まずは最上部の余計なプログラムの削減や、画像の圧縮を行いましょう。
+                    </p>
+                  </li>
+
+                  <li class="bg-slate-50/50 p-3.5 rounded-2xl border border-slate-100 relative">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-1.5">
+                      <span class="text-xs font-black text-[#223670]">② 主要キーワードに合わせたFV（ファーストビュー）の言葉調整</span>
+                      <div class="flex items-center gap-1.5 text-[9px] font-bold">
+                        <span class="bg-amber-50 text-amber-700 px-2 py-0.5 rounded-md">優先度: 高 (★★★)</span>
+                        <span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md">難易度: 中 (★★☆)</span>
+                      </div>
+                    </div>
+                    <p class="text-slate-500 text-[10px] leading-relaxed pl-1.5">
+                      最も強力な【${sourceVal}】からの検索流入を意識し、ユーザーが検索したキーワードと同じ言葉を、LPのファーストビューにキャッチコピーとしてそのまま反映させます。
+                    </p>
+                  </li>
+
+                  <li class="bg-slate-50/50 p-3.5 rounded-2xl border border-slate-100 relative">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-1.5">
+                      <span class="text-xs font-black text-[#223670]">③ スクロールに追従するモバイル用コンバージョンボタンの常時表示</span>
+                      <div class="flex items-center gap-1.5 text-[9px] font-bold">
+                        <span class="bg-red-50 text-red-700 px-2 py-0.5 rounded-md">優先度: 極高 (★★★★)</span>
+                        <span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md">難易度: 極低 (☆☆☆)</span>
+                      </div>
+                    </div>
+                    <p class="text-slate-500 text-[10px] leading-relaxed pl-1.5">
+                      読み込みエンゲージメント（${engagementVal}%）が高いため、ユーザーがいつでも資料請求・問合せできるように、画面の最下部（フッター）に幅いっぱいの「カタログ請求ボタン」を常に追従（CSS固定）させます。
+                    </p>
+                  </li>
+                </ul>
+              </div>
+
+              <!-- 3. 実践アドバイス手順 -->
+              <div>
+                <h4 class="text-[#223670] font-black mb-2.5 flex items-center gap-1.5 text-[13px] border-l-4 border-[#223670] pl-2">
+                  <i data-lucide="help-circle" class="w-4 h-4 text-[#d0a900]"></i>
+                  3. 具体的な改善方法のアドバイス (実践手順)
+                </h4>
+                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200/50 space-y-3 text-[11px] text-slate-600 font-bold">
+                  <div>
+                    <span class="text-[#00a3e0] font-black flex items-center gap-1">
+                      <i data-lucide="chevrons-right" class="w-4 h-4"></i>
+                      表示スピード改善のヒント
+                    </span>
+                    <p class="pl-5 text-[10px] text-slate-500 mt-0.5 leading-relaxed">無料ツール「Google PageSpeed Insights」で現在の数値を測定し、最上部の重たい画像ファイルを TinyPNG などの無料ツールで圧縮（できればWebP形式へ変換）して再設置します。</p>
+                  </div>
+                  <div>
+                    <span class="text-[#00a3e0] font-black flex items-center gap-1">
+                      <i data-lucide="chevrons-right" class="w-4 h-4"></i>
+                      ファーストビュー最適化のヒント
+                    </span>
+                    <p class="pl-5 text-[10px] text-slate-500 mt-0.5 leading-relaxed">流入元のキーワード予測（競合他社や検索窓でのサジェスト）を書き出し、ユーザーがLPを開いた瞬間に「私のことだ！」と一秒で共感できるキャッチコピーへ変更します。</p>
+                  </div>
+                  <div>
+                    <span class="text-[#00a3e0] font-black flex items-center gap-1">
+                      <i data-lucide="chevrons-right" class="w-4 h-4"></i>
+                      アクションボタンの追従手順
+                    </span>
+                    <p class="pl-5 text-[10px] text-slate-500 mt-0.5 leading-relaxed">スマホ画面の最下部に、スクロールしても常に指が届く位置に、幅いっぱいの「カタログ請求ボタン」を固定表示するレイアウトに調整します。</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 🌟 お客さま驚き要素3：ネイクストステップ (立体タイムラインロードマップ) -->
+              <div class="bg-[#223670]/5 p-5 rounded-2xl border border-dashed border-[#223670]/20">
+                <h4 class="text-[#223670] font-black mb-4 flex items-center gap-1.5 text-[12px]">
+                  <i data-lucide="arrow-right-circle" class="w-4 h-4 text-[#00a3e0]"></i>
+                  4. ネクストステップ（今後の並行伴走ロードマップ）
+                </h4>
+                <p class="text-[10px] text-slate-500 font-semibold mb-4 leading-relaxed">
+                  上記の改善案をスムーズに実行に移し、最速度で成果（コンバージョン数）向上を達成するために、伴走報告者である <strong>${consultantName}</strong> が以下のステップでご支援を並行実施いたします。
+                </p>
+                
+                <!-- タイムラインのビジュアルデザイン -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-[10px] font-bold text-slate-600 relative">
+                  
+                  <!-- STEP 1 -->
+                  <div class="bg-white p-4 rounded-2xl border border-slate-100 flex flex-col justify-between shadow-sm relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-1.5 h-full bg-[#00a3e0]"></div>
+                    <div>
+                      <span class="text-[#00a3e0] text-[11px] font-black flex items-center gap-1">
+                        <i data-lucide="calendar-range" class="w-4 h-4"></i>
+                        STEP 01 (1〜2週目)
+                      </span>
+                      <h5 class="text-xs font-black text-[#223670] mt-1.5">最優先：離脱防止の基盤改善</h5>
+                      <p class="text-slate-500 mt-1 leading-relaxed">表示速度の高速化、およびファーストビュー画像とテキストの最適化を実施し、今ある流入数（Organic Search）からの直帰を抑え込みます。</p>
+                    </div>
+                  </div>
+
+                  <!-- STEP 2 -->
+                  <div class="bg-white p-4 rounded-2xl border border-slate-100 flex flex-col justify-between shadow-sm relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-1.5 h-full bg-[#00a3e0]"></div>
+                    <div>
+                      <span class="text-[#00a3e0] text-[11px] font-black flex items-center gap-1">
+                        <i data-lucide="smartphone" class="w-4 h-4"></i>
+                        STEP 02 (3〜4週目)
+                      </span>
+                      <h5 class="text-xs font-black text-[#223670] mt-1.5">即効性：導線のスマホ最適化</h5>
+                      <p class="text-slate-500 mt-1 leading-relaxed">スマートフォン表示における「フローティングCVボタン（追従ボタン）」を設置し、ユーザーが「いつでもワンタップで問合せできる」設計へ改修します。</p>
+                    </div>
+                  </div>
+
+                  <!-- STEP 3 -->
+                  <div class="bg-white p-4 rounded-2xl border border-slate-100 flex flex-col justify-between shadow-sm relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-1.5 h-full bg-[#223670]"></div>
+                    <div>
+                      <span class="text-[#223670] text-[11px] font-black flex items-center gap-1">
+                        <i data-lucide="line-chart" class="w-4 h-4"></i>
+                        STEP 03 (翌月以降)
+                      </span>
+                      <h5 class="text-xs font-black text-[#223670] mt-1.5">継続的：効果測定・改善検証</h5>
+                      <p class="text-slate-500 mt-1 leading-relaxed">GA4の数値を再度本システムで取得・確認し、改善前後のコンバージョン率（CVR）のビフォーアフター数値を測定・チューニングします。</p>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+              <!-- 伴走応援アドバイス -->
+              <div class="pt-3 border-t border-slate-100 font-bold">
+                <h4 class="text-[#223670] font-black mb-1 flex items-center gap-1 text-[13px]">
+                  <i data-lucide="sparkles" class="w-4 h-4 text-[#d0a900]"></i>
+                  松本様からの応援メッセージ
+                </h4>
+                <p class="text-slate-500 pl-5 text-[11px] leading-relaxed">
+                  現在の基本数値は非常にポテンシャルの高い状態です！まずはスマホの「カタログ請求フロー」の最適化という具体的な一歩から実行し、さらなるリード獲得最大化を目指していきましょう！「考えるを、ひとりにしない。」の姿勢で、<strong>${clientName}</strong> の自動分析の成功を全力で応援いたします。
+                </p>
+              </div>
+            `;
+          }
 
           // 📈 お客さま驚き要素4：折れ線トレンド波形グラフを本番描画！
           renderCvTrendChart();
         }
 
         // UI切り替え
-        gBtn.parentElement.classList.add('hidden'); // ボタンを隠す
-        document.getElementById('ai-report-card').classList.remove('hidden'); // レポートカードを表示
+        const aiReportCard = document.getElementById('ai-report-card');
+        if (aiReportCard) aiReportCard.classList.remove('hidden');
+        if (gBtn && gBtn.parentElement) gBtn.parentElement.classList.add('hidden'); // ボタンを隠す
         
         // ボタンの復元
-        gBtn.disabled = false;
-        gBtn.innerHTML = `<i data-lucide="sparkles" class="w-4 h-4"></i><span>AI自動分析レポートを生成する！ (5秒で完成)</span>`;
+        if (gBtn) {
+          gBtn.disabled = false;
+          gBtn.innerHTML = `<i data-lucide="sparkles" class="w-4 h-4"></i><span>AI自動分析レポートを生成する！ (5秒で完成)</span>`;
+        }
         initIcons();
 
         // 表示されたレポート領域までスムーズにスクロール
-        document.getElementById('ai-report-card').scrollIntoView({ behavior: 'smooth' });
+        if (aiReportCard) aiReportCard.scrollIntoView({ behavior: 'smooth' });
       }, 1500);
     }
 
@@ -1286,74 +1389,79 @@
       const labels = Array.from({length: 15}, (_, i) => `${i*2 + 2}日前`);
       const dataValues = [2, 4, 3, 5, 8, 4, 6, 9, 5, 7, 8, 6, 8, 7, 9];
 
-      new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: labels.reverse(),
-          datasets: [{
-            label: 'コンバージョン発生数',
-            data: dataValues,
-            borderColor: '#00a3e0',
-            borderWidth: 3,
-            pointBackgroundColor: '#223670',
-            pointRadius: 4,
-            tension: 0.4, // 滑らかな曲線（スプライン）
-            fill: true,
-            // 綺麗なグラデーションで塗りつぶし
-            backgroundColor: function(context) {
-              const chart = context.chart;
-              const {ctx, chartArea} = chart;
-              if (!chartArea) return null;
-              const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-              gradient.addColorStop(0, 'rgba(0, 163, 224, 0.3)');
-              gradient.addColorStop(1, 'rgba(34, 54, 112, 0.0)');
-              return gradient;
-            }
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              display: false
-            }
+      try {
+        new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: labels.reverse(),
+            datasets: [{
+              label: 'コンバージョン発生数',
+              data: dataValues,
+              borderColor: '#00a3e0',
+              borderWidth: 3,
+              pointBackgroundColor: '#223670',
+              pointRadius: 4,
+              tension: 0.4, // 滑らかな曲線（スプライン）
+              fill: true,
+              // 綺麗なグラデーションで塗りつぶし
+              backgroundColor: function(context) {
+                const chart = context.chart;
+                const {ctx, chartArea} = chart;
+                if (!chartArea) return null;
+                const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+                gradient.addColorStop(0, 'rgba(0, 163, 224, 0.3)');
+                gradient.addColorStop(1, 'rgba(34, 54, 112, 0.0)');
+                return gradient;
+              }
+            }]
           },
-          scales: {
-            x: {
-              grid: {
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
                 display: false
-              },
-              ticks: {
-                font: {
-                  size: 8,
-                  weight: 'bold'
-                },
-                color: '#94a3b8'
               }
             },
-            y: {
-              beginAtZero: true,
-              grid: {
-                color: '#f1f5f9'
-              },
-              ticks: {
-                font: {
-                  size: 8,
-                  weight: 'bold'
+            scales: {
+              x: {
+                grid: {
+                  display: false
                 },
-                color: '#94a3b8',
-                stepSize: 2
+                ticks: {
+                  font: {
+                    size: 8,
+                    weight: 'bold'
+                  },
+                  color: '#94a3b8'
+                }
+              },
+              y: {
+                beginAtZero: true,
+                grid: {
+                  color: '#f1f5f9'
+                },
+                ticks: {
+                  font: {
+                    size: 8,
+                    weight: 'bold'
+                  },
+                  color: '#94a3b8',
+                  stepSize: 2
+                }
               }
             }
           }
-        }
-      });
+        });
+      } catch (e) {
+        console.error("Failed to render trend chart: ", e);
+      }
     }
 
-    // 📋 強力なレポート文面のコピー機能
+    // 📋 強力なレポート文面のコピー機能 (iOS・特殊ブラウザ完全対応 + 💡ボタン確認表示アニメーション搭載)
     function copyReportText() {
-      const text = document.getElementById('report-content-text').innerText;
+      const reportContentText = document.getElementById('report-content-text');
+      const text = reportContentText ? reportContentText.innerText : "";
       
       if (!text || text.trim() === "") {
         showNotification("コピーするレポート文面がありません。先にレポートを生成してください。", false);
@@ -1364,7 +1472,7 @@
       const tempInput = document.createElement("textarea");
       tempInput.value = text;
       
-      // iOSや主要ブラウザでのフォーカス不具合と、不必要な画面スクロール崩れを防ぐためのガードスタイル設定
+      // iOSや主要ブラウザでのフォー具合と、不必要な画面スクロール崩れを防ぐためのガードスタイル設定
       tempInput.style.position = 'fixed';
       tempInput.style.top = '0';
       tempInput.style.left = '-9999px';
@@ -1442,24 +1550,26 @@
     // ガイドボックスの表示トグル
     function toggleGuide() {
       const guide = document.getElementById('guide-box');
-      guide.classList.toggle('hidden');
+      if (guide) guide.classList.toggle('hidden');
     }
 
     // エラーメッセージの代替表示
     function showError(message) {
       const unTestedBox = document.getElementById('status-untested');
-      unTestedBox.innerHTML = `
-        <div class="bg-rose-50 border border-rose-200 text-rose-800 p-6 rounded-2xl w-full max-w-sm mx-auto">
-          <h4 class="font-bold text-sm flex items-center gap-1.5 mb-2 text-rose-700">
-            <i data-lucide="alert-circle" class="w-4 h-4"></i>
-            鍵ファイルの読み込みエラー
-          </h4>
-          <p class="text-xs leading-relaxed font-bold">${message}</p>
-          <button onclick="location.reload()" class="mt-4 text-[10px] bg-rose-200/50 hover:bg-rose-200 text-rose-900 px-3 py-1.5 rounded-full font-bold">
-            やり直す
-          </button>
-        </div>
-      `;
+      if (unTestedBox) {
+        unTestedBox.innerHTML = `
+          <div class="bg-rose-50 border border-rose-200 text-rose-800 p-6 rounded-2xl w-full max-w-sm mx-auto">
+            <h4 class="font-bold text-sm flex items-center gap-1.5 mb-2 text-rose-700">
+              <i data-lucide="alert-circle" class="w-4 h-4"></i>
+              鍵ファイルの読み込みエラー
+            </h4>
+            <p class="text-xs leading-relaxed font-bold">${message}</p>
+            <button onclick="location.reload()" class="mt-4 text-[10px] bg-rose-200/50 hover:bg-rose-200 text-rose-900 px-3 py-1.5 rounded-full font-bold">
+              やり直す
+            </button>
+          </div>
+        `;
+      }
       initIcons();
     }
   </script>
